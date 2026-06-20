@@ -20,3 +20,7 @@ Testing/
 ## code-review-graph local state
 .code-review-graph/
 *.crg.db
+
+## Claude Code local/personal settings (machine-specific permission grants)
+.claude/settings.local.json
+.gemini/settings.json.bak
