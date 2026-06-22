@@ -1,5 +1,6 @@
 add_executable(mlang_unit_tests
   lexer/token_kind_test.cpp
+  lexer/lexer_test.cpp
 )
 target_link_libraries(mlang_unit_tests PRIVATE mlang_lexer GTest::gtest_main)
 
