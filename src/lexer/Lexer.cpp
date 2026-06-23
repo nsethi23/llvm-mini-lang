@@ -105,7 +105,60 @@ Token Lexer::nextToken() {
     return scanIdentifierOrKeyword();
 
   advance();
-  return errorToken(std::string("unexpected character '") + c + "'", loc);
+  switch (c) {
+  case '(':
+    return makeToken(TokenKind::LParen, "(", loc);
+  case ')':
+    return makeToken(TokenKind::RParen, ")", loc);
+  case '{':
+    return makeToken(TokenKind::LBrace, "{", loc);
+  case '}':
+    return makeToken(TokenKind::RBrace, "}", loc);
+  case ',':
+    return makeToken(TokenKind::Comma, ",", loc);
+  case ':':
+    return makeToken(TokenKind::Colon, ":", loc);
+  case ';':
+    return makeToken(TokenKind::Semicolon, ";", loc);
+  case '+':
+    return makeToken(TokenKind::Plus, "+", loc);
+  case '*':
+    return makeToken(TokenKind::Star, "*", loc);
+  case '/':
+    return makeToken(TokenKind::Slash, "/", loc);
+  case '%':
+    return makeToken(TokenKind::Percent, "%", loc);
+  case '-':
+    if (match('>'))
+      return makeToken(TokenKind::Arrow, "->", loc);
+    return makeToken(TokenKind::Minus, "-", loc);
+  case '=':
+    if (match('='))
+      return makeToken(TokenKind::EqualEqual, "==", loc);
+    return makeToken(TokenKind::Assign, "=", loc);
+  case '!':
+    if (match('='))
+      return makeToken(TokenKind::BangEqual, "!=", loc);
+    return makeToken(TokenKind::Bang, "!", loc);
+  case '<':
+    if (match('='))
+      return makeToken(TokenKind::LessEqual, "<=", loc);
+    return makeToken(TokenKind::Less, "<", loc);
+  case '>':
+    if (match('='))
+      return makeToken(TokenKind::GreaterEqual, ">=", loc);
+    return makeToken(TokenKind::Greater, ">", loc);
+  case '&':
+    if (match('&'))
+      return makeToken(TokenKind::AmpAmp, "&&", loc);
+    return errorToken("unexpected character '&' (did you mean '&&'?)", loc);
+  case '|':
+    if (match('|'))
+      return makeToken(TokenKind::PipePipe, "||", loc);
+    return errorToken("unexpected character '|' (did you mean '||'?)", loc);
+  default:
+    return errorToken(std::string("unexpected character '") + c + "'", loc);
+  }
 }
 
 std::vector<Token> Lexer::tokenize() {
