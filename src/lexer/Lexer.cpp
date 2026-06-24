@@ -85,7 +85,19 @@ Token Lexer::scanIdentifierOrKeyword() {
 
 Token Lexer::scanNumber() {
   SourceLocation loc = currentLoc();
-  return errorToken("number literals not yet supported", loc);
+  std::string text;
+  while (!isAtEnd() && std::isdigit(static_cast<unsigned char>(peek())))
+    text += advance();
+
+  bool isFloat = false;
+  if (peek() == '.' && std::isdigit(static_cast<unsigned char>(peekNext()))) {
+    isFloat = true;
+    text += advance(); // consume '.'
+    while (!isAtEnd() && std::isdigit(static_cast<unsigned char>(peek())))
+      text += advance();
+  }
+
+  return makeToken(isFloat ? TokenKind::FloatLiteral : TokenKind::IntLiteral, text, loc);
 }
 
 Token Lexer::scanString() {
@@ -103,6 +115,8 @@ Token Lexer::nextToken() {
   char c = peek();
   if (std::isalpha(static_cast<unsigned char>(c)) || c == '_')
     return scanIdentifierOrKeyword();
+  if (std::isdigit(static_cast<unsigned char>(c)))
+    return scanNumber();
 
   advance();
   switch (c) {
