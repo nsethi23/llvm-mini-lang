@@ -129,6 +129,43 @@ TEST(Lexer, TrailingDotWithoutDigitsIsNotPartOfNumber) {
   EXPECT_EQ(tokens[0].lexeme, "1");
 }
 
+TEST(Lexer, ScansStringLiteral) {
+  auto tokens = lex(R"("hello world")");
+  ASSERT_EQ(tokens.size(), 2u);
+  EXPECT_EQ(tokens[0].kind, TokenKind::StringLiteral);
+  EXPECT_EQ(tokens[0].lexeme, "hello world");
+}
+
+TEST(Lexer, ScansStringLiteralWithEscapes) {
+  auto tokens = lex(R"("line1\nline2\t\"quoted\"\\")");
+  ASSERT_EQ(tokens.size(), 2u);
+  EXPECT_EQ(tokens[0].kind, TokenKind::StringLiteral);
+  EXPECT_EQ(tokens[0].lexeme, "line1\nline2\t\"quoted\"\\");
+}
+
+TEST(Lexer, UnterminatedStringIsAnError) {
+  EXPECT_EQ(lex(R"("unterminated)")[0].kind, TokenKind::Error);
+  EXPECT_EQ(lex("\"newline\nin-string\"")[0].kind, TokenKind::Error);
+}
+
+TEST(Lexer, UnknownEscapeSequenceIsAnError) {
+  EXPECT_EQ(lex(R"("bad\qescape")")[0].kind, TokenKind::Error);
+}
+
+TEST(Lexer, LineCommentsAreSkipped) {
+  auto tokens = lex("let x = 1; // this is a comment\nlet y = 2;");
+  // let x = 1 ; let y = 2 ; EOF -- the comment contributes nothing.
+  ASSERT_EQ(tokens.size(), 11u);
+  EXPECT_EQ(tokens[9].kind, TokenKind::Semicolon);
+  EXPECT_EQ(tokens[10].kind, TokenKind::Eof);
+}
+
+TEST(Lexer, CommentAtEndOfFileWithNoTrailingNewline) {
+  auto tokens = lex("let x = 1; // trailing comment, no newline");
+  ASSERT_EQ(tokens.size(), 6u);
+  EXPECT_EQ(tokens[5].kind, TokenKind::Eof);
+}
+
 TEST(Lexer, FunctionSignaturePunctuationRoundTrips) {
   auto tokens = lex("fn fib(n: int) -> int {");
   std::vector<TokenKind> expected = {
