@@ -11,7 +11,7 @@ implementations (Kaleidoscope, but taken further: static types, a real test
 suite, and honest before/after benchmarks against both a tree-walking
 interpreter and Python).
 
-**Status: M0 in progress.**
+**Status: M1 (lexer) complete.**
 
 See [`PRD.md`](PRD.md) for the full spec and milestone breakdown, and
 [`CLAUDE.md`](CLAUDE.md) for how this repo is built/worked on (one milestone
@@ -65,11 +65,12 @@ ctest --test-dir build --output-on-failure
 ### Run the driver
 
 ```bash
-./build/mlang
+./build/mlang --dump-tokens examples/fib.mlang
 ```
 
-(From M1 onward this gains `--dump-tokens`; `--dump-ast` from M2; a working
-REPL from M6. See `PRD.md` for the full milestone list.)
+Prints the token stream (kind, lexeme, `line:column`) for a `.mlang` source
+file. `--dump-ast` lands in M2, a working REPL in M6 — see `PRD.md` for the
+full milestone list.
 
 ## Development
 
