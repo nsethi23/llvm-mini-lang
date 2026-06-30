@@ -5,6 +5,7 @@
 #define MLANG_PARSER_PARSER_H
 
 #include "mlang/ast/Expr.h"
+#include "mlang/ast/Stmt.h"
 #include "mlang/parser/Diagnostic.h"
 
 #include <vector>
@@ -19,6 +20,11 @@ public:
   // a diagnostic and returns nullptr.
   ExprPtr parseExpression();
 
+  // Parses a single "{ ... }" block. On a syntax error anywhere inside,
+  // records a diagnostic and returns nullptr -- multi-error recovery within
+  // a block is added in a later commit.
+  std::unique_ptr<BlockStmt> parseBlock();
+
   const std::vector<Diagnostic>& diagnostics() const {
     return diagnostics_;
   }
@@ -28,6 +34,11 @@ private:
   // the caller can decide how to recover. Never escapes a public entry
   // point.
   struct ParseError {};
+
+  StmtPtr parseStatement();
+  StmtPtr parseLetStmt(SourceLocation loc);
+  StmtPtr parseReturnStmt(SourceLocation loc);
+  StmtPtr parseExprStmt();
 
   ExprPtr parseOr();
   ExprPtr parseAnd();
