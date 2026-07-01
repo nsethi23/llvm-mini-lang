@@ -67,15 +67,19 @@ ExprPtr Parser::parseExpression() {
 
 std::unique_ptr<BlockStmt> Parser::parseBlock() {
   try {
-    SourceLocation loc = expect(TokenKind::LBrace, "expected '{' to start a block").loc;
-    std::vector<StmtPtr> stmts;
-    while (!check(TokenKind::RBrace) && !isAtEnd())
-      stmts.push_back(parseStatement());
-    expect(TokenKind::RBrace, "expected '}' to close block");
-    return std::make_unique<BlockStmt>(std::move(stmts), loc);
+    return parseBlockRaw();
   } catch (const ParseError&) {
     return nullptr;
   }
+}
+
+std::unique_ptr<BlockStmt> Parser::parseBlockRaw() {
+  SourceLocation loc = expect(TokenKind::LBrace, "expected '{' to start a block").loc;
+  std::vector<StmtPtr> stmts;
+  while (!check(TokenKind::RBrace) && !isAtEnd())
+    stmts.push_back(parseStatement());
+  expect(TokenKind::RBrace, "expected '}' to close block");
+  return std::make_unique<BlockStmt>(std::move(stmts), loc);
 }
 
 StmtPtr Parser::parseStatement() {
@@ -83,6 +87,10 @@ StmtPtr Parser::parseStatement() {
     return parseLetStmt(advance().loc);
   if (check(TokenKind::KwReturn))
     return parseReturnStmt(advance().loc);
+  if (check(TokenKind::KwIf))
+    return parseIfStmt(advance().loc);
+  if (check(TokenKind::KwWhile))
+    return parseWhileStmt(advance().loc);
   return parseExprStmt();
 }
 
@@ -102,6 +110,21 @@ StmtPtr Parser::parseReturnStmt(SourceLocation loc) {
     value = parseOr();
   expect(TokenKind::Semicolon, "expected ';' after return statement");
   return std::make_unique<ReturnStmt>(std::move(value), loc);
+}
+
+StmtPtr Parser::parseIfStmt(SourceLocation loc) {
+  ExprPtr cond = parseOr();
+  std::unique_ptr<BlockStmt> thenBlock = parseBlockRaw();
+  std::unique_ptr<BlockStmt> elseBlock;
+  if (match(TokenKind::KwElse))
+    elseBlock = parseBlockRaw();
+  return std::make_unique<IfStmt>(std::move(cond), std::move(thenBlock), std::move(elseBlock), loc);
+}
+
+StmtPtr Parser::parseWhileStmt(SourceLocation loc) {
+  ExprPtr cond = parseOr();
+  std::unique_ptr<BlockStmt> body = parseBlockRaw();
+  return std::make_unique<WhileStmt>(std::move(cond), std::move(body), loc);
 }
 
 StmtPtr Parser::parseExprStmt() {

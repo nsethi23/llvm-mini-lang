@@ -67,3 +67,37 @@ TEST(ParserStmt, UnclosedBlockIsAParseError) {
   EXPECT_EQ(block, nullptr);
   ASSERT_EQ(parser.diagnostics().size(), 1u);
 }
+
+TEST(ParserStmt, ParsesIfWithoutElse) {
+  EXPECT_EQ(parseBlockToString("{ if n < 2 { return n; } }"),
+            "(block\n  (if (binary < (id n) (int 2))\n    (block\n      (return (id n)))))");
+}
+
+TEST(ParserStmt, ParsesIfWithElse) {
+  EXPECT_EQ(
+      parseBlockToString("{ if n < 2 { return n; } else { return fib(n); } }"),
+      "(block\n  (if (binary < (id n) (int 2))\n    (block\n      (return (id n)))\n    (block\n"
+      "      (return (call fib (id n))))))");
+}
+
+TEST(ParserStmt, ParsesWhile) {
+  // v1 has no assignment statement -- while bodies exercise calls instead.
+  EXPECT_EQ(parseBlockToString("{ while x < 10 { print(x); } }"),
+            "(block\n  (while (binary < (id x) (int 10))\n    (block\n      (exprstmt (call "
+            "print (id x))))))");
+}
+
+TEST(ParserStmt, ParsesNestedIfInsideWhile) {
+  EXPECT_EQ(parseBlockToString("{ while true { if x { return 1; } } }"),
+            "(block\n  (while (bool true)\n    (block\n      (if (id x)\n        (block\n"
+            "          (return (int 1)))))))");
+}
+
+TEST(ParserStmt, MissingBlockAfterIfIsAParseError) {
+  Lexer lexer("{ if n < 2 return n; }");
+  Parser parser(lexer.tokenize());
+  auto block = parser.parseBlock();
+  EXPECT_EQ(block, nullptr);
+  ASSERT_EQ(parser.diagnostics().size(), 1u);
+  EXPECT_EQ(parser.diagnostics()[0].message, "expected '{' to start a block");
+}
