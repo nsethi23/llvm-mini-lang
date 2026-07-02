@@ -136,14 +136,19 @@ StmtPtr Parser::parseExprStmt() {
 
 Program Parser::parseProgram() {
   Program program;
-  try {
-    while (!isAtEnd())
+  while (!isAtEnd()) {
+    try {
       program.functions.push_back(parseFunction());
-  } catch (const ParseError&) {
-    // Multi-error recovery (keep parsing past this function) lands in a
-    // later commit; for now we stop with whatever parsed cleanly.
+    } catch (const ParseError&) {
+      synchronize();
+    }
   }
   return program;
+}
+
+void Parser::synchronize() {
+  while (!isAtEnd() && !check(TokenKind::KwFn))
+    advance();
 }
 
 FunctionDecl Parser::parseFunction() {

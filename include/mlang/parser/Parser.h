@@ -26,10 +26,11 @@ public:
   // a block is added in a later commit.
   std::unique_ptr<BlockStmt> parseBlock();
 
-  // Parses a whole program (function*). On a syntax error, records a
-  // diagnostic and returns whatever functions parsed successfully before
-  // it; recovering to keep parsing past the error and report every syntax
-  // error in the file is added in a later commit.
+  // Parses a whole program (function*). On a syntax error inside a
+  // function, records a diagnostic, skips forward to the next 'fn' (panic
+  // mode), and keeps going -- so a single file with several broken
+  // functions reports a diagnostic per function rather than just the
+  // first.
   Program parseProgram();
 
   const std::vector<Diagnostic>& diagnostics() const {
@@ -58,6 +59,11 @@ private:
   FunctionDecl parseFunction();
   std::vector<Param> parseParams();
   Param parseParam();
+
+  // Panic-mode recovery: after a syntax error, skip tokens until the next
+  // likely function boundary ('fn' or end of input) so parseProgram can
+  // resume parsing the rest of the file.
+  void synchronize();
 
   ExprPtr parseOr();
   ExprPtr parseAnd();
