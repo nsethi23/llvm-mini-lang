@@ -134,6 +134,55 @@ StmtPtr Parser::parseExprStmt() {
   return std::make_unique<ExprStmt>(std::move(expr), loc);
 }
 
+Program Parser::parseProgram() {
+  Program program;
+  try {
+    while (!isAtEnd())
+      program.functions.push_back(parseFunction());
+  } catch (const ParseError&) {
+    // Multi-error recovery (keep parsing past this function) lands in a
+    // later commit; for now we stop with whatever parsed cleanly.
+  }
+  return program;
+}
+
+FunctionDecl Parser::parseFunction() {
+  SourceLocation loc = expect(TokenKind::KwFn, "expected 'fn' to start a function declaration").loc;
+  std::string name = expect(TokenKind::Identifier, "expected function name").lexeme;
+  expect(TokenKind::LParen, "expected '(' after function name");
+  std::vector<Param> params = parseParams();
+  expect(TokenKind::RParen, "expected ')' after parameter list");
+  expect(TokenKind::Arrow, "expected '->' after parameter list");
+  TypeName returnType = parseTypeName();
+  std::unique_ptr<BlockStmt> body = parseBlockRaw();
+
+  FunctionDecl fn;
+  fn.name = std::move(name);
+  fn.params = std::move(params);
+  fn.returnType = returnType;
+  fn.body = std::move(body);
+  fn.loc = loc;
+  return fn;
+}
+
+std::vector<Param> Parser::parseParams() {
+  std::vector<Param> params;
+  if (check(TokenKind::RParen))
+    return params;
+  params.push_back(parseParam());
+  while (match(TokenKind::Comma))
+    params.push_back(parseParam());
+  return params;
+}
+
+Param Parser::parseParam() {
+  SourceLocation loc = peek().loc;
+  std::string name = expect(TokenKind::Identifier, "expected parameter name").lexeme;
+  expect(TokenKind::Colon, "expected ':' after parameter name");
+  TypeName type = parseTypeName();
+  return Param{std::move(name), type, loc};
+}
+
 ExprPtr Parser::parseOr() {
   ExprPtr expr = parseAnd();
   while (match(TokenKind::PipePipe)) {

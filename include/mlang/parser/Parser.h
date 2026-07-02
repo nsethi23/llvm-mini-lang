@@ -4,6 +4,7 @@
 #ifndef MLANG_PARSER_PARSER_H
 #define MLANG_PARSER_PARSER_H
 
+#include "mlang/ast/Decl.h"
 #include "mlang/ast/Expr.h"
 #include "mlang/ast/Stmt.h"
 #include "mlang/parser/Diagnostic.h"
@@ -24,6 +25,12 @@ public:
   // records a diagnostic and returns nullptr -- multi-error recovery within
   // a block is added in a later commit.
   std::unique_ptr<BlockStmt> parseBlock();
+
+  // Parses a whole program (function*). On a syntax error, records a
+  // diagnostic and returns whatever functions parsed successfully before
+  // it; recovering to keep parsing past the error and report every syntax
+  // error in the file is added in a later commit.
+  Program parseProgram();
 
   const std::vector<Diagnostic>& diagnostics() const {
     return diagnostics_;
@@ -47,6 +54,10 @@ private:
   StmtPtr parseIfStmt(SourceLocation loc);
   StmtPtr parseWhileStmt(SourceLocation loc);
   StmtPtr parseExprStmt();
+
+  FunctionDecl parseFunction();
+  std::vector<Param> parseParams();
+  Param parseParam();
 
   ExprPtr parseOr();
   ExprPtr parseAnd();
