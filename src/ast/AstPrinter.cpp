@@ -55,6 +55,10 @@ std::string printStmt(const Stmt& stmt, int indent) {
     return pad + "(let " + let.name + " " + std::string(typeName(let.type)) + " " +
            printExpr(*let.init) + ")";
   }
+  case StmtKind::Assign: {
+    const auto& assign = static_cast<const AssignStmt&>(stmt);
+    return pad + "(assign " + assign.name + " " + printExpr(*assign.value) + ")";
+  }
   case StmtKind::Return: {
     const auto& ret = static_cast<const ReturnStmt&>(stmt);
     if (ret.value)

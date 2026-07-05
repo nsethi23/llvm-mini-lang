@@ -51,6 +51,7 @@ private:
 
   StmtPtr parseStatement();
   StmtPtr parseLetStmt(SourceLocation loc);
+  StmtPtr parseAssignStmt();
   StmtPtr parseReturnStmt(SourceLocation loc);
   StmtPtr parseIfStmt(SourceLocation loc);
   StmtPtr parseWhileStmt(SourceLocation loc);
@@ -82,6 +83,7 @@ private:
   bool isAtEnd() const;
   const Token& advance();
   bool check(TokenKind kind) const;
+  bool checkNext(TokenKind kind) const;
   bool match(TokenKind kind);
   const Token& expect(TokenKind kind, const std::string& message);
   [[noreturn]] void error(const Token& at, const std::string& message);

@@ -39,6 +39,14 @@ TEST(AstNodes, CallExprHoldsCalleeAndArgs) {
   ASSERT_EQ(call.args.size(), 1u);
 }
 
+TEST(AstNodes, AssignStmtHoldsNameAndValue) {
+  auto value = std::make_unique<IntLiteralExpr>(5, SourceLocation{1, 1});
+  AssignStmt assign("x", std::move(value), {1, 1});
+  EXPECT_EQ(assign.kind, StmtKind::Assign);
+  EXPECT_EQ(assign.name, "x");
+  EXPECT_EQ(static_cast<IntLiteralExpr*>(assign.value.get())->value, 5);
+}
+
 TEST(AstNodes, IfStmtHoldsOptionalElseBlock) {
   auto cond = std::make_unique<BoolLiteralExpr>(true, SourceLocation{1, 1});
   std::vector<StmtPtr> thenStmts;

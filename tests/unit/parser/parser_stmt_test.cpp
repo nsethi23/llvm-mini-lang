@@ -81,10 +81,46 @@ TEST(ParserStmt, ParsesIfWithElse) {
 }
 
 TEST(ParserStmt, ParsesWhile) {
-  // v1 has no assignment statement -- while bodies exercise calls instead.
   EXPECT_EQ(parseBlockToString("{ while x < 10 { print(x); } }"),
             "(block\n  (while (binary < (id x) (int 10))\n    (block\n      (exprstmt (call "
             "print (id x))))))");
+}
+
+TEST(ParserStmt, ParsesWhileWithAssignmentBody) {
+  EXPECT_EQ(parseBlockToString("{ while x < 10 { x = x + 1; } }"),
+            "(block\n  (while (binary < (id x) (int 10))\n    (block\n      (assign x (binary + "
+            "(id x) (int 1))))))");
+}
+
+TEST(ParserStmt, ParsesAssignStmt) {
+  EXPECT_EQ(parseBlockToString("{ x = 5; }"), "(block\n  (assign x (int 5)))");
+}
+
+TEST(ParserStmt, ParsesAssignWithExpressionRhs) {
+  EXPECT_EQ(parseBlockToString("{ x = x + 1; }"),
+            "(block\n  (assign x (binary + (id x) (int 1))))");
+}
+
+TEST(ParserStmt, DistinguishesAssignFromExprStmtCall) {
+  // A bare identifier followed by '(' is a call expression statement, not
+  // an assignment -- the two only diverge on the token after the IDENT.
+  EXPECT_EQ(parseBlockToString("{ foo(); }"), "(block\n  (exprstmt (call foo)))");
+  EXPECT_EQ(parseBlockToString("{ foo = 1; }"), "(block\n  (assign foo (int 1)))");
+}
+
+TEST(ParserStmt, DistinguishesAssignFromEqualityExprStmt) {
+  // '==' must not be mistaken for '=' by the one-token-ahead lookahead.
+  EXPECT_EQ(parseBlockToString("{ foo == 1; }"),
+            "(block\n  (exprstmt (binary == (id foo) (int 1))))");
+}
+
+TEST(ParserStmt, MissingSemicolonAfterAssignmentIsAParseError) {
+  Lexer lexer("{ x = 5 }");
+  Parser parser(lexer.tokenize());
+  auto block = parser.parseBlock();
+  EXPECT_EQ(block, nullptr);
+  ASSERT_EQ(parser.diagnostics().size(), 1u);
+  EXPECT_EQ(parser.diagnostics()[0].message, "expected ';' after assignment");
 }
 
 TEST(ParserStmt, ParsesNestedIfInsideWhile) {

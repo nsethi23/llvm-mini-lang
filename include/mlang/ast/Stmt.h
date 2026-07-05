@@ -12,6 +12,7 @@ namespace mlang {
 
 enum class StmtKind {
   Let,
+  Assign,
   Return,
   If,
   While,
@@ -42,6 +43,13 @@ struct LetStmt : Stmt {
   ExprPtr init;
   LetStmt(std::string name, TypeName type, ExprPtr init, SourceLocation loc)
       : Stmt(StmtKind::Let, loc), name(std::move(name)), type(type), init(std::move(init)) {}
+};
+
+struct AssignStmt : Stmt {
+  std::string name;
+  ExprPtr value;
+  AssignStmt(std::string name, ExprPtr value, SourceLocation loc)
+      : Stmt(StmtKind::Assign, loc), name(std::move(name)), value(std::move(value)) {}
 };
 
 struct ReturnStmt : Stmt {
