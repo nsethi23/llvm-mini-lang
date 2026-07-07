@@ -21,6 +21,7 @@ target_link_libraries(mlang_parser PUBLIC mlang_ast mlang_lexer)
 add_library(mlang_interpreter STATIC
   interpreter/Value.cpp
   interpreter/Environment.cpp
+  interpreter/Interpreter.cpp
 )
 target_include_directories(mlang_interpreter PUBLIC ${CMAKE_SOURCE_DIR}/include)
-target_link_libraries(mlang_interpreter PUBLIC mlang_ast)
+target_link_libraries(mlang_interpreter PUBLIC mlang_ast ${LLVM_LIBS})
