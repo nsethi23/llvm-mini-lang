@@ -7,6 +7,7 @@
 
 #include "mlang/ast/Decl.h"
 #include "mlang/ast/Expr.h"
+#include "mlang/ast/Stmt.h"
 #include "mlang/interpreter/Environment.h"
 #include "mlang/interpreter/RuntimeError.h"
 #include "mlang/interpreter/Value.h"
@@ -26,7 +27,23 @@ public:
   // on top of it in later commits. Throws RuntimeError on failure.
   Value evaluate(const Expr& expr, Environment& env);
 
+  // Executes a single statement in the given scope. `return` unwinds via
+  // ReturnSignal, which only a function call (added in a later commit) is
+  // expected to catch -- calling this directly on a `return` statement in
+  // isolation (as tests do) lets that exception propagate to the caller.
+  void execute(const Stmt& stmt, Environment& env);
+
+  // Executes a block in a fresh child scope of `parentEnv`.
+  void executeBlock(const BlockStmt& block, Environment& parentEnv);
+
 private:
+  // Thrown by a `return` statement to unwind out of the current function
+  // call. Never escapes a public entry point that represents a complete
+  // function invocation.
+  struct ReturnSignal {
+    Value value;
+  };
+
   Value evaluateBinary(BinaryOp op, const Value& lhs, const Value& rhs, SourceLocation loc);
   Value evaluateUnary(UnaryOp op, const Value& operand, SourceLocation loc);
   Value evaluateCast(const Value& operand, TypeName target, SourceLocation loc);
