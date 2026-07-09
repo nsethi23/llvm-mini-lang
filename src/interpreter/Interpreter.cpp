@@ -95,10 +95,29 @@ void Interpreter::execute(const Stmt& stmt, Environment& env) {
     evaluate(*static_cast<const ExprStmt&>(stmt).expr, env);
     return;
   }
-  case StmtKind::If:
-    error(stmt.loc, "if statements not yet supported");
-  case StmtKind::While:
-    error(stmt.loc, "while statements not yet supported");
+  case StmtKind::If: {
+    const auto& ifs = static_cast<const IfStmt&>(stmt);
+    Value cond = evaluate(*ifs.cond, env);
+    if (!std::holds_alternative<bool>(cond))
+      error(stmt.loc, "if condition must be bool, got " + std::string(valueTypeName(cond)));
+    if (std::get<bool>(cond))
+      executeBlock(*ifs.thenBlock, env);
+    else if (ifs.elseBlock)
+      executeBlock(*ifs.elseBlock, env);
+    return;
+  }
+  case StmtKind::While: {
+    const auto& whileStmt = static_cast<const WhileStmt&>(stmt);
+    while (true) {
+      Value cond = evaluate(*whileStmt.cond, env);
+      if (!std::holds_alternative<bool>(cond))
+        error(stmt.loc, "while condition must be bool, got " + std::string(valueTypeName(cond)));
+      if (!std::get<bool>(cond))
+        break;
+      executeBlock(*whileStmt.body, env);
+    }
+    return;
+  }
   case StmtKind::Block:
     executeBlock(static_cast<const BlockStmt&>(stmt), env);
     return;
