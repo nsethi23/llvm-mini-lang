@@ -39,6 +39,11 @@ public:
   // Executes a block in a fresh child scope of `parentEnv`.
   void executeBlock(const BlockStmt& block, Environment& parentEnv);
 
+  // Finds and calls `main` with no arguments, returning its (required to be
+  // int) return value as the process exit code. Throws RuntimeError if
+  // there's no `main` or it doesn't return int.
+  int64_t run();
+
 private:
   // Thrown by a `return` statement to unwind out of the current function
   // call. Never escapes a public entry point that represents a complete
