@@ -18,6 +18,13 @@ add_library(mlang_parser STATIC
 target_include_directories(mlang_parser PUBLIC ${CMAKE_SOURCE_DIR}/include)
 target_link_libraries(mlang_parser PUBLIC mlang_ast mlang_lexer)
 
+add_library(mlang_sema STATIC
+  sema/SemaType.cpp
+  sema/Scope.cpp
+)
+target_include_directories(mlang_sema PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(mlang_sema PUBLIC mlang_ast)
+
 add_library(mlang_interpreter STATIC
   interpreter/Value.cpp
   interpreter/Environment.cpp
