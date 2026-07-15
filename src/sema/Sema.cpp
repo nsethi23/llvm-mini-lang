@@ -169,4 +169,80 @@ SemaType Sema::checkCall(const CallExpr& expr, Scope& scope) {
   return argsOk ? toSemaType(fn.returnType) : SemaType::Error;
 }
 
+void Sema::checkBlock(const BlockStmt& block, Scope& parentScope, const FunctionDecl& fn) {
+  Scope scope(&parentScope);
+  for (const StmtPtr& s : block.stmts)
+    checkStmt(*s, scope, fn);
+}
+
+void Sema::checkStmt(const Stmt& stmt, Scope& scope, const FunctionDecl& fn) {
+  switch (stmt.kind) {
+  case StmtKind::Let: {
+    const auto& let = static_cast<const LetStmt&>(stmt);
+    SemaType initType = checkExpr(*let.init, scope);
+    SemaType declared = toSemaType(let.type);
+    if (initType != SemaType::Error && initType != declared)
+      error(stmt.loc, "cannot initialize '" + let.name + "' of type " +
+                           std::string(semaTypeName(declared)) + " with value of type " +
+                           std::string(semaTypeName(initType)));
+    scope.define(let.name, declared);
+    return;
+  }
+  case StmtKind::Assign: {
+    const auto& assign = static_cast<const AssignStmt&>(stmt);
+    SemaType valueType = checkExpr(*assign.value, scope);
+    const SemaType* varType = scope.find(assign.name);
+    if (!varType) {
+      error(stmt.loc, "undefined variable '" + assign.name + "' in assignment");
+      return;
+    }
+    if (valueType != SemaType::Error && valueType != *varType)
+      error(stmt.loc, "cannot assign value of type " + std::string(semaTypeName(valueType)) +
+                           " to '" + assign.name + "' of type " +
+                           std::string(semaTypeName(*varType)));
+    return;
+  }
+  case StmtKind::Return: {
+    const auto& ret = static_cast<const ReturnStmt&>(stmt);
+    SemaType expected = toSemaType(fn.returnType);
+    if (!ret.value) {
+      error(stmt.loc, "missing return value; '" + fn.name + "' returns " +
+                           std::string(semaTypeName(expected)));
+      return;
+    }
+    SemaType actual = checkExpr(*ret.value, scope);
+    if (actual != SemaType::Error && actual != expected)
+      error(stmt.loc, "return type mismatch: '" + fn.name + "' returns " +
+                           std::string(semaTypeName(expected)) + ", got " +
+                           std::string(semaTypeName(actual)));
+    return;
+  }
+  case StmtKind::Expr:
+    checkExpr(*static_cast<const ExprStmt&>(stmt).expr, scope);
+    return;
+  case StmtKind::If: {
+    const auto& ifs = static_cast<const IfStmt&>(stmt);
+    SemaType cond = checkExpr(*ifs.cond, scope);
+    if (cond != SemaType::Error && cond != SemaType::Bool)
+      error(stmt.loc, "if condition must be bool, got " + std::string(semaTypeName(cond)));
+    checkBlock(*ifs.thenBlock, scope, fn);
+    if (ifs.elseBlock)
+      checkBlock(*ifs.elseBlock, scope, fn);
+    return;
+  }
+  case StmtKind::While: {
+    const auto& whileStmt = static_cast<const WhileStmt&>(stmt);
+    SemaType cond = checkExpr(*whileStmt.cond, scope);
+    if (cond != SemaType::Error && cond != SemaType::Bool)
+      error(stmt.loc, "while condition must be bool, got " + std::string(semaTypeName(cond)));
+    checkBlock(*whileStmt.body, scope, fn);
+    return;
+  }
+  case StmtKind::Block:
+    checkBlock(static_cast<const BlockStmt&>(stmt), scope, fn);
+    return;
+  }
+  error(stmt.loc, "internal error: unknown statement kind");
+}
+
 } // namespace mlang

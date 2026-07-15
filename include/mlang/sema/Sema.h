@@ -9,6 +9,7 @@
 
 #include "mlang/ast/Decl.h"
 #include "mlang/ast/Expr.h"
+#include "mlang/ast/Stmt.h"
 #include "mlang/parser/Diagnostic.h"
 #include "mlang/sema/Scope.h"
 #include "mlang/sema/SemaType.h"
@@ -27,6 +28,16 @@ public:
   // diagnostic has already been recorded). Public so expression checking
   // is independently testable, matching Interpreter::evaluate's shape.
   SemaType checkExpr(const Expr& expr, Scope& scope);
+
+  // Type-checks a single statement in the given scope, in the context of
+  // `fn` (return statements are checked against fn's declared return
+  // type). Public so statement checking is independently testable,
+  // matching Interpreter::execute's shape.
+  void checkStmt(const Stmt& stmt, Scope& scope, const FunctionDecl& fn);
+
+  // Type-checks a block in a fresh child scope of `parentScope`, matching
+  // Interpreter::executeBlock's scoping.
+  void checkBlock(const BlockStmt& block, Scope& parentScope, const FunctionDecl& fn);
 
   const std::vector<Diagnostic>& diagnostics() const { return diags_; }
 
