@@ -39,6 +39,12 @@ public:
   // Interpreter::executeBlock's scoping.
   void checkBlock(const BlockStmt& block, Scope& parentScope, const FunctionDecl& fn);
 
+  // Type-checks the whole program: duplicate/builtin-shadowing function
+  // names, main()'s signature, and every function's body plus its
+  // all-paths-return flow. Returns true (and leaves diagnostics() empty)
+  // iff the program is well-typed.
+  bool check();
+
   const std::vector<Diagnostic>& diagnostics() const { return diags_; }
 
 private:
@@ -46,6 +52,13 @@ private:
   SemaType checkBinary(const BinaryExpr& expr, Scope& scope);
   SemaType checkCast(const CastExpr& expr, Scope& scope);
   SemaType checkCall(const CallExpr& expr, Scope& scope);
+  void checkFunction(const FunctionDecl& fn);
+
+  // Conservative static flow check: true only if every path through the
+  // statement/block is guaranteed to hit a `return` (a `while` body never
+  // counts, since its condition may be false on entry).
+  static bool stmtAlwaysReturns(const Stmt& stmt);
+  static bool blockAlwaysReturns(const BlockStmt& block);
 
   void error(SourceLocation loc, std::string message);
 
