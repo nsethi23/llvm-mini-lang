@@ -1,0 +1,1 @@
+bad_cast.mlang:3:14: error: unsupported cast from bool to int

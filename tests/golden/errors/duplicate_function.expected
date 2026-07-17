@@ -1,0 +1,1 @@
+duplicate_function.mlang:5:1: error: function 'helper' is already defined

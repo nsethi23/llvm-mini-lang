@@ -1,0 +1,1 @@
+type_mismatch_let.mlang:2:5: error: cannot initialize 'x' of type int with value of type bool

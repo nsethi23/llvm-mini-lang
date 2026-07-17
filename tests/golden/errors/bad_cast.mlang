@@ -1,0 +1,8 @@
+fn helper() -> int {
+    let x: bool = true;
+    return x as int;
+}
+
+fn main() -> int {
+    return 0;
+}

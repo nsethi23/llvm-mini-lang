@@ -1,0 +1,7 @@
+fn helper() -> int {
+    return true;
+}
+
+fn main() -> int {
+    return 0;
+}
