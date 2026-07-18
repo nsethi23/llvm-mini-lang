@@ -11,7 +11,7 @@ implementations (Kaleidoscope, but taken further: static types, a real test
 suite, and honest before/after benchmarks against both a tree-walking
 interpreter and Python).
 
-**Status: M3 (tree-walking interpreter) complete.**
+**Status: M4 (semantic analysis / type checking) complete.**
 
 See [`PRD.md`](PRD.md) for the full spec and milestone breakdown, and
 [`CLAUDE.md`](CLAUDE.md) for how this repo is built/worked on (one milestone
@@ -63,6 +63,10 @@ ctest --test-dir build --output-on-failure
 
 # golden tests only (tests/golden/*.mlang cross-checked against the interpreter)
 ./build/tests/golden_runner tests/golden/
+
+# sema error golden tests (tests/golden/errors/*.mlang, each expected to
+# produce a specific diagnostic)
+./build/tests/sema_error_runner tests/golden/errors/
 ```
 
 ### Run the driver
@@ -70,17 +74,23 @@ ctest --test-dir build --output-on-failure
 ```bash
 ./build/mlang --dump-tokens examples/fib.mlang   # token stream
 ./build/mlang --dump-ast examples/fib.mlang       # s-expression AST
-./build/mlang --interpret examples/fib.mlang      # tree-walking interpreter
+./build/mlang --check examples/fib.mlang          # type-check only
+./build/mlang --interpret examples/fib.mlang      # type-check + tree-walking interpreter
 ```
 
 `--dump-tokens` prints the token stream (kind, lexeme, `line:column`).
 `--dump-ast` lexes, parses, and prints the AST as an s-expression; on a
 syntax error it prints `file:line:col: error: ...` diagnostics instead (one
-per broken function, not just the first) and exits non-zero. `--interpret`
-lexes, parses, and tree-walks the program, exiting with `main`'s return
-value — this interpreter is also the correctness oracle every later
-LLVM-codegen test is checked against (PRD.md M3/M7). A working REPL lands
-in M6 — see `PRD.md` for the full milestone list.
+per broken function, not just the first) and exits non-zero. `--check`
+additionally runs sema (scope resolution, type checking of every
+expression/statement/function signature, and an all-paths-return check on
+every function body) and prints the same `file:line:col: error: ...` style
+diagnostics for any type error, without running the program. `--interpret`
+runs the same checks and, if the program is well-typed, tree-walks it,
+exiting with `main`'s return value — this interpreter is also the
+correctness oracle every later LLVM-codegen test is checked against
+(PRD.md M3/M7). A working REPL lands in M6 — see `PRD.md` for the full
+milestone list.
 
 ## Development
 
