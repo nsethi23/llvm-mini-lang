@@ -33,3 +33,9 @@ add_library(mlang_interpreter STATIC
 )
 target_include_directories(mlang_interpreter PUBLIC ${CMAKE_SOURCE_DIR}/include)
 target_link_libraries(mlang_interpreter PUBLIC mlang_ast ${LLVM_LIBS})
+
+add_library(mlang_codegen STATIC
+  codegen/CodeGen.cpp
+)
+target_include_directories(mlang_codegen PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(mlang_codegen PUBLIC mlang_ast ${LLVM_LIBS})
