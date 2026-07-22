@@ -87,7 +87,10 @@ re-reading whole files or the whole repo on every turn.
 
 Each milestone should end in something that can actually be run and shown, not
 just code that compiles. M1 (lexer) should have a `--dump-tokens` CLI flag. M2
-(parser) should have a `--dump-ast` flag. M6 (JIT) should have a working REPL.
+(parser) should have a `--dump-ast` flag. M6 (dispatch layer) should have a
+`--trace-calls` flag or equivalent showing per-function call counts. M7
+(hot-swap promotion) should have a `--trace-promotions` flag showing a
+function get promoted to native code mid-run. M9 should have a working REPL.
 If a milestone can't be demoed in under 30 seconds from a fresh clone, it isn't
 done — add the CLI plumbing before closing it out.
 
@@ -141,7 +144,7 @@ ctest --test-dir build --output-on-failure
 ./build/mlang --dump-tokens examples/fib.mlang
 ./build/mlang --dump-ast examples/fib.mlang
 
-# REPL (available from M6 on)
+# REPL (available from M9 on)
 ./build/mlang
 ```
 
