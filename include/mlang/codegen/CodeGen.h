@@ -24,8 +24,12 @@ class CodeGen {
 public:
   CodeGen(const Program& program, llvm::LLVMContext& ctx, std::string moduleName = "mlang");
 
-  llvm::Module& module() { return *module_; }
-  llvm::IRBuilder<>& builder() { return *builder_; }
+  llvm::Module& module() {
+    return *module_;
+  }
+  llvm::IRBuilder<>& builder() {
+    return *builder_;
+  }
 
   // Generates a single expression's IR at the builder's current insertion
   // point, returning the produced value. Public so expression codegen is
@@ -92,7 +96,7 @@ private:
   llvm::FunctionCallee runtimePrintFn(const std::string& name, llvm::Type* argType);
 
   llvm::AllocaInst* createEntryAlloca(llvm::Function* fn, const std::string& name,
-                                       llvm::Type* type);
+                                      llvm::Type* type);
 
   llvm::Function* declareFunction(const FunctionDecl& fn);
   void genFunction(const FunctionDecl& fn, llvm::Function* F);

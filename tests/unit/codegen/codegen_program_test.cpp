@@ -55,9 +55,11 @@ TEST(CodeGenProgram, GeneratesVerifiableIfElseWhereBothArmsReturn) {
   main.name = "main";
   main.returnType = TypeName::Int;
   std::vector<StmtPtr> thenStmts;
-  thenStmts.push_back(std::make_unique<ReturnStmt>(std::make_unique<IntLiteralExpr>(1, loc()), loc()));
+  thenStmts.push_back(
+      std::make_unique<ReturnStmt>(std::make_unique<IntLiteralExpr>(1, loc()), loc()));
   std::vector<StmtPtr> elseStmts;
-  elseStmts.push_back(std::make_unique<ReturnStmt>(std::make_unique<IntLiteralExpr>(0, loc()), loc()));
+  elseStmts.push_back(
+      std::make_unique<ReturnStmt>(std::make_unique<IntLiteralExpr>(0, loc()), loc()));
   std::vector<StmtPtr> body;
   body.push_back(std::make_unique<IfStmt>(std::make_unique<BoolLiteralExpr>(true, loc()),
                                           blockOf(std::move(thenStmts)),
@@ -152,11 +154,12 @@ TEST(CodeGenProgram, GeneratesVerifiableWhileLoop) {
   main.name = "main";
   main.returnType = TypeName::Int;
   std::vector<StmtPtr> body;
-  body.push_back(
-      std::make_unique<LetStmt>("i", TypeName::Int, std::make_unique<IntLiteralExpr>(0, loc()), loc()));
+  body.push_back(std::make_unique<LetStmt>("i", TypeName::Int,
+                                           std::make_unique<IntLiteralExpr>(0, loc()), loc()));
 
-  auto cond = std::make_unique<BinaryExpr>(BinaryOp::Lt, std::make_unique<IdentifierExpr>("i", loc()),
-                                           std::make_unique<IntLiteralExpr>(5, loc()), loc());
+  auto cond =
+      std::make_unique<BinaryExpr>(BinaryOp::Lt, std::make_unique<IdentifierExpr>("i", loc()),
+                                   std::make_unique<IntLiteralExpr>(5, loc()), loc());
   std::vector<StmtPtr> whileBody;
   whileBody.push_back(std::make_unique<AssignStmt>(
       "i",
