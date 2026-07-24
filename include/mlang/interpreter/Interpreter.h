@@ -11,6 +11,7 @@
 #include "mlang/interpreter/Environment.h"
 #include "mlang/interpreter/RuntimeError.h"
 #include "mlang/interpreter/Value.h"
+#include "mlang/jit/DispatchTable.h"
 
 #include "llvm/Support/raw_ostream.h"
 
@@ -44,6 +45,15 @@ public:
   // there's no `main` or it doesn't return int.
   int64_t run();
 
+  // Every call to an mlang function (including `main`, via run()) is
+  // resolved through this table by name -- see PRD.md M6. Every entry
+  // starts bound to that function's interpreter trampoline; non-const so
+  // callers (e.g. --trace-calls, or a test proving the redirect mechanism)
+  // can inspect or patch entries.
+  DispatchTable& dispatchTable() {
+    return dispatch_;
+  }
+
 private:
   // Thrown by a `return` statement to unwind out of the current function
   // call. Never escapes a public entry point that represents a complete
@@ -64,6 +74,7 @@ private:
   const Program& program_;
   llvm::raw_ostream& out_;
   std::unordered_map<std::string, const FunctionDecl*> functions_;
+  DispatchTable dispatch_;
 };
 
 } // namespace mlang
