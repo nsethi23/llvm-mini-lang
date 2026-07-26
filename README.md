@@ -11,7 +11,7 @@ implementations (Kaleidoscope, but taken further: static types, a real test
 suite, and honest before/after benchmarks against both a tree-walking
 interpreter and Python).
 
-**Status: M5 (LLVM IR codegen) complete.**
+**Status: M6 (profiling + dispatch layer) complete.**
 
 See [`PRD.md`](PRD.md) for the full spec and milestone breakdown, and
 [`CLAUDE.md`](CLAUDE.md) for how this repo is built/worked on (one milestone
@@ -99,8 +99,13 @@ well-typed, walks the AST via `IRBuilder` to emit LLVM IR -- function
 definitions, arithmetic/comparison ops, `alloca`-based locals, `if`/`while`
 control flow via basic blocks, function calls, and `print()` lowered to a
 declared (not yet linked) runtime helper -- verifies the module with
-`llvm::verifyModule`, and prints the resulting `.ll` text. A working JIT
-and REPL land in M6 — see `PRD.md` for the full milestone list.
+`llvm::verifyModule`, and prints the resulting `.ll` text. `--trace-calls`
+runs the same checks and, if the program is well-typed, interprets it
+through a per-function call-dispatch table, printing each function's call
+count once it finishes -- every call resolves through this table by name,
+which is the mechanism M7's hot-swap promotion patches to redirect a hot
+function to JIT-compiled native code mid-run. See `PRD.md` for the full
+milestone list.
 
 ## Development
 
