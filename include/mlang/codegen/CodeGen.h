@@ -31,6 +31,14 @@ public:
     return *builder_;
   }
 
+  // Transfers ownership of the generated module to the caller -- used by
+  // the JIT driver (PRD.md M7), which must hand LLVM's ORC layer a module
+  // it owns outright. Leaves this CodeGen without a module; only call after
+  // generate() and only once.
+  std::unique_ptr<llvm::Module> releaseModule() {
+    return std::move(module_);
+  }
+
   // Generates a single expression's IR at the builder's current insertion
   // point, returning the produced value. Public so expression codegen is
   // independently testable, matching Interpreter::evaluate's and

@@ -20,7 +20,13 @@ Value DispatchTable::invoke(const std::string& name, std::vector<Value> args, So
   auto it = entries_.find(name);
   assert(it != entries_.end() && "invoke() on a name with no entry");
   it->second.callCount++;
-  return it->second.trampoline(std::move(args), loc);
+
+  // Captured before the hook runs -- see the invoke() doc comment on why
+  // this ordering matters for promotion mid-recursion.
+  Trampoline trampoline = it->second.trampoline;
+  if (hook_)
+    hook_(name, it->second.callCount);
+  return trampoline(std::move(args), loc);
 }
 
 bool DispatchTable::contains(const std::string& name) const {

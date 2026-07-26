@@ -39,7 +39,23 @@ public:
 
   // Increments `name`'s call counter and invokes its current trampoline.
   // Asserts `name` has an existing entry -- there is no fallback target.
+  //
+  // The trampoline actually invoked for THIS call is captured before the
+  // promotion hook (below) runs, so a hook that calls redirect() on `name`
+  // never affects the call that triggered it -- only calls made afterward
+  // (including recursive self-calls made while this one is still on the
+  // stack) see the new target. That is what lets a promotion mid-recursion
+  // leave already-in-flight interpreter frames alone (PRD.md M7).
   Value invoke(const std::string& name, std::vector<Value> args, SourceLocation loc);
+
+  // Called synchronously from invoke(), after the call counter increments
+  // but before that call's trampoline runs, as (name, newCallCount). M6
+  // itself has no promotion policy; this is the extension point M7's
+  // Promoter attaches to in order to decide when to compile and redirect.
+  using PromotionHook = std::function<void(const std::string& name, uint64_t callCount)>;
+  void setPromotionHook(PromotionHook hook) {
+    hook_ = std::move(hook);
+  }
 
   bool contains(const std::string& name) const;
   uint64_t callCount(const std::string& name) const;
@@ -56,6 +72,7 @@ private:
 
   std::unordered_map<std::string, Entry> entries_;
   std::vector<std::string> insertionOrder_;
+  PromotionHook hook_;
 };
 
 } // namespace mlang
