@@ -24,3 +24,12 @@ add_executable(codegen_verify_runner golden/codegen_verify_runner.cpp)
 target_link_libraries(codegen_verify_runner PRIVATE mlang_codegen mlang_sema mlang_parser mlang_ast
                                                      mlang_lexer ${LLVM_LIBS})
 add_test(NAME codegen_verify_tests COMMAND codegen_verify_runner ${CMAKE_SOURCE_DIR}/tests/golden)
+
+# Promotion cross-check: every golden program must produce identical
+# stdout/exit code whether pure-interpreted, promoted mid-run, or promoted
+# on its very first call (PRD.md M7 demo).
+add_executable(promotion_cross_check_runner golden/promotion_cross_check_runner.cpp)
+target_link_libraries(promotion_cross_check_runner PRIVATE mlang_interpreter mlang_parser mlang_ast
+                                                            mlang_lexer ${LLVM_LIBS})
+add_test(NAME promotion_cross_check_tests COMMAND promotion_cross_check_runner
+                                                   ${CMAKE_SOURCE_DIR}/tests/golden)
