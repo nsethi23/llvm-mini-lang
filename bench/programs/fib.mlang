@@ -1,0 +1,16 @@
+// Naive recursive Fibonacci, n=30 (~2.7M calls to fib()) -- PRD.md M8's
+// recursive workload: call-heavy, deeply nested, no loops at all, so it
+// isolates the cost of a single function call under each execution tier.
+fn fib(n: int) -> int {
+    if n < 2 {
+        return n;
+    } else {
+        return fib(n - 1) + fib(n - 2);
+    }
+}
+
+fn main() -> int {
+    let result: int = fib(30);
+    print(result);
+    return 0;
+}

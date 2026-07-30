@@ -1,0 +1,33 @@
+// Iterative workload, 10,000 x 1,000 = 10M total loop iterations --
+// PRD.md M8's "sum 10M iterations" benchmark.
+//
+// PRD.md M6/M7's dispatch table promotes per *function call*, not per loop
+// iteration -- a single `while` loop inside main() would only ever make
+// one call (to main itself), so it could never demonstrate mid-run
+// promotion. Structuring the work as many calls to sumChunk(), each
+// running a 1,000-iteration loop, makes sumChunk hot enough to promote
+// well before the workload finishes, and its *own* loop body is exactly
+// what benefits from running as compiled native code instead of a
+// tree-walked AST once it does.
+fn sumChunk(n: int) -> int {
+    let total: int = 0;
+    let i: int = 0;
+    while i < n {
+        total = total + i;
+        i = i + 1;
+    }
+    return total;
+}
+
+fn main() -> int {
+    let outerIters: int = 10000;
+    let chunkSize: int = 1000;
+    let grandTotal: int = 0;
+    let i: int = 0;
+    while i < outerIters {
+        grandTotal = grandTotal + sumChunk(chunkSize);
+        i = i + 1;
+    }
+    print(grandTotal);
+    return 0;
+}
