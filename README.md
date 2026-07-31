@@ -117,6 +117,26 @@ interpreter's call stack. A dedicated golden cross-check runs every
 on its first call, and requires all three to agree exactly. See `PRD.md`
 for the full milestone list.
 
+## Benchmarks
+
+`./bench/run.sh` regenerates the numbers below (and
+[`bench/results.md`](bench/results.md)) from scratch, reproducibly: it
+builds a Release binary if needed, runs `bench/programs/*.mlang` cold-
+interpreted, tiered (with hot-swap promotion enabled), and the equivalent
+Python 3 program, timing wall-clock and cross-checking every run's output
+agrees before recording it.
+
+<!-- BENCHMARKS:START -->
+
+Numbers below are from the most recent `./bench/run.sh` (generated 2026-08-23 22:11 EDT; promotion threshold **1000** calls). Full methodology and machine info in [`bench/results.md`](bench/results.md).
+
+| Benchmark | cold-interpreted | tiered (this project) | Python 3 | tiered vs. cold |
+|---|---|---|---|---|
+| fib(30) recursive | 24.77s | 0.0215s | 0.0756s | 1150.3x faster |
+| sum_loop (10,000 x 1,000 = 10M iterations) | 1.1693s | 0.1466s | 0.2085s | 8.0x faster |
+
+<!-- BENCHMARKS:END -->
+
 ## Development
 
 - `.clang-format` (LLVM style base) — run `clang-format -i` on changed files
