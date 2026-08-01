@@ -283,6 +283,7 @@ calls" mid-run, and the final result is identical to a pure-interpreted run
 of the same program.
 
 ### M8 — Benchmarks with a warm-up story
+**Status: ✅ Complete.**
 Scripted, reproducible benchmark harness in `bench/`, comparing (a)
 cold-interpreted llvm-mini-lang, (b) tiered llvm-mini-lang (interpret, then
 promote once hot — the real end-to-end story this project is built around),
