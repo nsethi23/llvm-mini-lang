@@ -47,3 +47,15 @@ add_library(mlang_interpreter STATIC
 )
 target_include_directories(mlang_interpreter PUBLIC ${CMAKE_SOURCE_DIR}/include)
 target_link_libraries(mlang_interpreter PUBLIC mlang_ast mlang_jit ${LLVM_LIBS})
+
+# The REPL (PRD.md M9) lives under jit/ alongside the rest of the JIT
+# driver, but is its own library target: it depends on mlang_interpreter
+# (which already depends on mlang_jit), and mlang_jit itself must not
+# depend back on mlang_interpreter, so folding Repl.cpp into mlang_jit
+# would create a cycle.
+add_library(mlang_repl STATIC
+  jit/Repl.cpp
+)
+target_include_directories(mlang_repl PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(mlang_repl PUBLIC mlang_interpreter mlang_parser mlang_sema mlang_ast
+                                         mlang_lexer ${LLVM_LIBS})

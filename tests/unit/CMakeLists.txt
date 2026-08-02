@@ -25,9 +25,11 @@ add_executable(mlang_unit_tests
   jit/dispatch_table_test.cpp
   jit/jit_test.cpp
   jit/promoter_test.cpp
+  jit/repl_test.cpp
 )
-target_link_libraries(mlang_unit_tests PRIVATE mlang_parser mlang_ast mlang_lexer mlang_interpreter
-                                                mlang_sema mlang_codegen mlang_jit GTest::gtest_main)
+target_link_libraries(mlang_unit_tests PRIVATE mlang_repl mlang_parser mlang_ast mlang_lexer
+                                                mlang_interpreter mlang_sema mlang_codegen mlang_jit
+                                                GTest::gtest_main)
 
 include(GoogleTest)
 gtest_discover_tests(mlang_unit_tests)
