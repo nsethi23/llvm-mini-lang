@@ -1,0 +1,11 @@
+// Iterative control flow: while, mutation, and comparison operators.
+fn main() -> int {
+    let total: int = 0;
+    let i: int = 1;
+    while i <= 100 {
+        total = total + i;
+        i = i + 1;
+    }
+    print(total);
+    return 0;
+}
