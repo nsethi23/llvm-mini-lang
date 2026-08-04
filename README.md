@@ -2,20 +2,79 @@
 
 [![CI](https://github.com/nsethi23/llvm-mini-lang/actions/workflows/ci.yml/badge.svg)](https://github.com/nsethi23/llvm-mini-lang/actions/workflows/ci.yml)
 
-llvm-mini-lang is a small, statically-typed language that compiles to native machine
-code via LLVM, with a JIT-executed REPL. The project's purpose is to build and
-demonstrate a complete, correct, benchmarked compiler pipeline — lexer, parser,
-type checker, LLVM IR codegen, and ORC JIT execution — as a portfolio-grade
-systems project, in the tradition of small "toy but real" language
-implementations (Kaleidoscope, but taken further: static types, a real test
-suite, and honest before/after benchmarks against both a tree-walking
-interpreter and Python).
+llvm-mini-lang is a small, statically-typed language with a **tiered execution
+engine**: every function starts running on a tree-walking interpreter, and a
+function that gets called enough times is promoted -- live, mid-program, via
+LLVM's ORC JIT -- to native machine code. That's not a compile-then-run demo;
+it's the same shape as V8 (Ignition → Sparkplug → TurboFan), HotSpot (C1 → C2),
+and LuaJIT (interpret, then trace hot loops into compiled code), scaled down
+to a project one person can actually finish and explain end to end. See
+[`docs/architecture.md`](docs/architecture.md) for the full pipeline and why
+tiering is a meaningfully different design than a Kaleidoscope-style one-shot
+compiler.
 
-**Status: M8 (benchmarks) complete.**
+**Status: v1.0.0 -- all of M0–M9 complete** (lexer → parser → sema →
+tree-walking interpreter → LLVM codegen → hot-swap JIT promotion →
+benchmarks → REPL). See [`PRD.md`](PRD.md) for the full milestone breakdown
+and [`CLAUDE.md`](CLAUDE.md) for how this repo was built (one milestone at a
+time, small atomic commits -- `git log --oneline` reads as a real build log).
 
-See [`PRD.md`](PRD.md) for the full spec and milestone breakdown, and
-[`CLAUDE.md`](CLAUDE.md) for how this repo is built/worked on (one milestone
-at a time, small atomic commits).
+## Quickstart
+
+```bash
+git clone https://github.com/nsethi23/llvm-mini-lang.git
+cd llvm-mini-lang
+brew install llvm@18 cmake ninja                     # see Prerequisites below for Linux
+cmake -S . -B build -DCMAKE_PREFIX_PATH=$(brew --prefix llvm@18)
+cmake --build build -j
+./build/mlang                                         # launch the REPL
+```
+
+Inside the REPL:
+
+```
+>>> fn fib(n: int) -> int {
+...     if n < 2 { return n; } else { return fib(n - 1) + fib(n - 2); }
+... }
+defined fn fib(n: int) -> int
+>>> fib(25)
+fib promoted to native code after 10 calls
+75025
+```
+
+That promotion line isn't decoration -- `fib` really did just get compiled to
+native code mid-session and the dispatch table really did get repointed at
+it, live, while the REPL kept running. Run `./bench/run.sh` to see what that
+buys: a full comparison against cold-interpreted mlang and Python.
+
+## Example programs
+
+```
+// examples/fib.mlang
+fn fib(n: int) -> int {
+    if n < 2 {
+        return n;
+    } else {
+        return fib(n - 1) + fib(n - 2);
+    }
+}
+
+fn main() -> int {
+    let x: int = 10;
+    let result: int = fib(x);
+    print(result);
+    return 0;
+}
+```
+
+```bash
+./build/mlang --interpret examples/fib.mlang     # tree-walked
+./build/mlang --trace-promotions examples/fib.mlang 5   # promotes mid-run
+```
+
+More in [`examples/`](examples/): `loop_sum.mlang` (iterative control flow)
+and `casts_and_bools.mlang` (`as` casts, short-circuit `&&`/`||`). Full
+language spec in [`docs/language-reference.md`](docs/language-reference.md).
 
 ## Build
 
@@ -71,16 +130,24 @@ ctest --test-dir build --output-on-failure
 # codegen golden tests (every well-typed tests/golden/*.mlang program must
 # codegen to a module that passes llvm::verifyModule)
 ./build/tests/codegen_verify_runner tests/golden/
+
+# promotion cross-check: every golden program must produce identical
+# output whether pure-interpreted, promoted mid-run, or promoted on its
+# first call
+./build/tests/promotion_cross_check_runner tests/golden/
 ```
 
-### Run the driver
+## CLI reference
 
 ```bash
-./build/mlang --dump-tokens examples/fib.mlang   # token stream
-./build/mlang --dump-ast examples/fib.mlang       # s-expression AST
-./build/mlang --check examples/fib.mlang          # type-check only
-./build/mlang --interpret examples/fib.mlang      # type-check + tree-walking interpreter
-./build/mlang --emit-llvm examples/fib.mlang      # type-check + LLVM IR, verified
+./build/mlang --dump-tokens <file>              # token stream
+./build/mlang --dump-ast <file>                 # s-expression AST
+./build/mlang --check <file>                    # type-check only
+./build/mlang --interpret <file>                # type-check + tree-walking interpreter
+./build/mlang --emit-llvm <file>                # type-check + LLVM IR, verified
+./build/mlang --trace-calls <file>               # interpret + print each function's call count
+./build/mlang --trace-promotions <file> [threshold]   # interpret with hot-swap promotion enabled
+./build/mlang                                    # REPL (same pipeline, one statement at a time)
 ```
 
 `--dump-tokens` prints the token stream (kind, lexeme, `line:column`).
@@ -92,30 +159,27 @@ expression/statement/function signature, and an all-paths-return check on
 every function body) and prints the same `file:line:col: error: ...` style
 diagnostics for any type error, without running the program. `--interpret`
 runs the same checks and, if the program is well-typed, tree-walks it,
-exiting with `main`'s return value — this interpreter is also the
-correctness oracle every LLVM-codegen test is checked against (PRD.md
-M3/M7). `--emit-llvm` runs the same checks and, if the program is
-well-typed, walks the AST via `IRBuilder` to emit LLVM IR -- function
-definitions, arithmetic/comparison ops, `alloca`-based locals, `if`/`while`
-control flow via basic blocks, function calls, and `print()` lowered to a
-declared (not yet linked) runtime helper -- verifies the module with
-`llvm::verifyModule`, and prints the resulting `.ll` text. `--trace-calls`
-runs the same checks and, if the program is well-typed, interprets it
-through a per-function call-dispatch table, printing each function's call
-count once it finishes -- every call resolves through this table by name,
-which is the mechanism M7's hot-swap promotion patches to redirect a hot
-function to JIT-compiled native code mid-run. `--trace-promotions
-<file> [threshold]` (default threshold 10) runs the same interpreted
-program with promotion enabled: once a function's call count crosses the
-threshold, it's compiled through a real ORC `LLJIT` (reusing the M5
-codegen path unchanged) and its dispatch entry is redirected to the
-compiled code live, mid-program -- printing `"<fn> promoted to native
-code after N calls"` the moment it happens, including while that
-function's own earlier recursive calls are still unwinding on the
-interpreter's call stack. A dedicated golden cross-check runs every
-`tests/golden/` program pure-interpreted, promoted mid-run, and promoted
-on its first call, and requires all three to agree exactly. See `PRD.md`
-for the full milestone list.
+exiting with `main`'s return value -- this interpreter is also the
+correctness oracle every JIT result is checked against. `--emit-llvm` runs
+the same checks and, if the program is well-typed, walks the AST via
+`IRBuilder` to emit LLVM IR -- function definitions, arithmetic/comparison
+ops, `alloca`-based locals, `if`/`while` control flow via basic blocks,
+function calls, and `print()` lowered to a runtime helper -- verifies the
+module with `llvm::verifyModule`, and prints the resulting `.ll` text.
+`--trace-calls` interprets the program through the per-function dispatch
+table and prints each function's call count once it finishes -- the
+mechanism `--trace-promotions` builds on. `--trace-promotions <file>
+[threshold]` (default threshold 10) interprets with hot-swap promotion
+enabled: once a function's call count crosses the threshold, it's compiled
+through a real ORC `LLJIT` and its dispatch entry is redirected to the
+compiled code live, mid-program -- printing `"<fn> promoted to native code
+after N calls"` the moment it happens, including while that function's own
+earlier recursive calls are still unwinding on the interpreter's call
+stack. Running `mlang` with **no arguments** launches an interactive REPL
+over the same pipeline -- see [`docs/architecture.md`](docs/architecture.md)
+for the full mechanism, and its "Known limitations" section for what's
+deliberately out of scope (no on-stack replacement, synchronous
+compilation, no de-optimization).
 
 ## Benchmarks
 
@@ -128,18 +192,28 @@ agrees before recording it.
 
 <!-- BENCHMARKS:START -->
 
-Numbers below are from the most recent `./bench/run.sh` (generated 2026-08-23 22:11 EDT; promotion threshold **1000** calls). Full methodology and machine info in [`bench/results.md`](bench/results.md).
+Numbers below are from the most recent `./bench/run.sh` (generated 2026-08-23 22:30 EDT; promotion threshold **1000** calls). Full methodology and machine info in [`bench/results.md`](bench/results.md).
 
 | Benchmark | cold-interpreted | tiered (this project) | Python 3 | tiered vs. cold |
 |---|---|---|---|---|
-| fib(30) recursive | 24.77s | 0.0215s | 0.0756s | 1150.3x faster |
-| sum_loop (10,000 x 1,000 = 10M iterations) | 1.1693s | 0.1466s | 0.2085s | 8.0x faster |
+| fib(30) recursive | 25.32s | 0.0218s | 0.0763s | 1160.4x faster |
+| sum_loop (10,000 x 1,000 = 10M iterations) | 1.2192s | 0.1587s | 0.2157s | 7.7x faster |
 
 <!-- BENCHMARKS:END -->
 
+The honest part of that comparison: the tree-walking interpreter alone is
+*not* competitive with Python (exception-based `return` unwinding on every
+call is expensive) -- it's only once the JIT tier kicks in that this project
+pulls ahead. That gap is the entire point of building a tiered engine
+instead of shipping the interpreter alone.
+
 ## Development
 
-- `.clang-format` (LLVM style base) — run `clang-format -i` on changed files
+- `.clang-format` (LLVM style base) -- run `clang-format -i` on changed files
   before committing.
 - Commit discipline, milestone sequencing, and use of the `code-review-graph`
   MCP tool for context-efficient review are documented in `CLAUDE.md`.
+- [`docs/language-reference.md`](docs/language-reference.md): full language
+  spec (types, grammar, operator precedence, scoping).
+- [`docs/architecture.md`](docs/architecture.md): the tiered pipeline, the
+  in-flight-recursion correctness edge case, and known limitations.
