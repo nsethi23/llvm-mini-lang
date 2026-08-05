@@ -24,3 +24,16 @@ Testing/
 ## Claude Code local/personal settings (machine-specific permission grants)
 .claude/settings.local.json
 .gemini/settings.json.bak
+.claude
+.cursor
+.gemini
+.kiro
+.qoder
+CLAUDE.md
+GEMINI.md
+AGENTS.md
+QODER.md
+.cursorrules
+.mcp.json
+.opencode.json
+.windsurfrules

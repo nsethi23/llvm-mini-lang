@@ -300,6 +300,7 @@ script, not hand-edited.
 reproducibly, including the promotion threshold used for each run.
 
 ### M9 — REPL, docs & polish
+**Status: ✅ Complete.**
 Build a REPL mode that runs each typed top-level statement/expression
 through the same tiered dispatch path as a file run (it's a thin CLI loop
 around the M7 execution engine, not a separate execution mode). Full
