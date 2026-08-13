@@ -128,6 +128,18 @@ void Interpreter::execute(const Stmt& stmt, Environment& env) {
   error(stmt.loc, "internal error: unknown statement kind");
 }
 
+int64_t Interpreter::run() {
+  auto it = functions_.find("main");
+  if (it == functions_.end())
+    error(SourceLocation{1, 1}, "no 'main' function defined");
+
+  Value result = callFunction(*it->second, {}, SourceLocation{1, 1});
+  if (!std::holds_alternative<int64_t>(result))
+    error(SourceLocation{1, 1},
+          "'main' must return int, got " + std::string(valueTypeName(result)));
+  return std::get<int64_t>(result);
+}
+
 Value Interpreter::evaluateCall(const CallExpr& call, Environment& env) {
   std::vector<Value> args;
   args.reserve(call.args.size());
