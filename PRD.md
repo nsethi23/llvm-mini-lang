@@ -76,6 +76,16 @@ fn fib(n: int) -> int {
     }
 }
 
+fn sum_to(n: int) -> int {
+    let total: int = 0;
+    let i: int = 0;
+    while i < n {
+        total = total + i;
+        i = i + 1;
+    }
+    return total;
+}
+
 fn main() -> int {
     let x: int = 10;
     let result: int = fib(x);
@@ -92,8 +102,9 @@ params      := param ("," param)*
 param       := IDENT ":" type
 type        := "int" | "float" | "bool"
 block       := "{" stmt* "}"
-stmt        := let_stmt | return_stmt | if_stmt | while_stmt | expr_stmt
+stmt        := let_stmt | assign_stmt | return_stmt | if_stmt | while_stmt | expr_stmt
 let_stmt    := "let" IDENT ":" type "=" expr ";"
+assign_stmt := IDENT "=" expr ";"
 return_stmt := "return" expr? ";"
 if_stmt     := "if" expr block ("else" block)?
 while_stmt  := "while" expr block
@@ -101,6 +112,15 @@ expr_stmt   := expr ";"
 expr        := ... (standard precedence climbing: or, and, equality,
                      comparison, additive, multiplicative, unary, call, primary)
 ```
+
+`assign_stmt` was added during M2: the original grammar had `let` for
+declaration but nothing for reassignment, so a `while` loop had no way to
+make progress toward its own exit condition (short of a side-effecting
+call). Disambiguated from `expr_stmt` by one token of lookahead — `IDENT`
+immediately followed by `=` (not `==`) is an assignment, everything else
+falls through to `expr_stmt`. `assign_stmt` is statement-only in v1 (not a
+chainable expression) and only targets a bare local variable — no
+`a.b = c`-style targets, since v1 has no compound/heap types (sec. 4).
 
 ## 6. Architecture
 
@@ -146,10 +166,10 @@ tracking for error messages.
 
 ### M2 — Parser → AST
 Recursive-descent parser producing a typed-but-unchecked AST: functions,
-`let`, `if`/`else`, `while`, `return`, expression statements, full expression
-grammar with correct precedence/associativity. Parser error recovery
-(reports multiple syntax errors per file where reasonable, not just the
-first).
+`let`, assignment, `if`/`else`, `while`, `return`, expression statements,
+full expression grammar with correct precedence/associativity. Parser error
+recovery (reports multiple syntax errors per file where reasonable, not
+just the first).
 **Demo:** `mlang --dump-ast examples/fib.mlang` prints the AST (s-expression
 or JSON form).
 
