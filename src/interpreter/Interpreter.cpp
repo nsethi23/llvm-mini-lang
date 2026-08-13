@@ -5,7 +5,10 @@
 namespace mlang {
 
 Interpreter::Interpreter(const Program& program, llvm::raw_ostream& out)
-    : program_(program), out_(out) {}
+    : program_(program), out_(out) {
+  for (const FunctionDecl& fn : program_.functions)
+    functions_[fn.name] = &fn;
+}
 
 void Interpreter::error(SourceLocation loc, const std::string& message) {
   throw RuntimeError{message, loc};
@@ -61,7 +64,7 @@ Value Interpreter::evaluate(const Expr& expr, Environment& env) {
     return evaluateCast(operand, c.targetType, expr.loc);
   }
   case ExprKind::Call:
-    error(expr.loc, "function calls not yet supported");
+    return evaluateCall(static_cast<const CallExpr&>(expr), env);
   }
   error(expr.loc, "internal error: unknown expression kind");
 }
@@ -123,6 +126,61 @@ void Interpreter::execute(const Stmt& stmt, Environment& env) {
     return;
   }
   error(stmt.loc, "internal error: unknown statement kind");
+}
+
+Value Interpreter::evaluateCall(const CallExpr& call, Environment& env) {
+  std::vector<Value> args;
+  args.reserve(call.args.size());
+  for (const ExprPtr& arg : call.args)
+    args.push_back(evaluate(*arg, env));
+
+  auto it = functions_.find(call.callee);
+  if (it != functions_.end())
+    return callFunction(*it->second, std::move(args), call.loc);
+  return callBuiltin(call.callee, args, call.loc);
+}
+
+Value Interpreter::callFunction(const FunctionDecl& fn, std::vector<Value> args,
+                                SourceLocation callLoc) {
+  if (args.size() != fn.params.size())
+    error(callLoc, "'" + fn.name + "' expects " + std::to_string(fn.params.size()) +
+                       " argument(s), got " + std::to_string(args.size()));
+
+  // No closures in v1: a call gets a fresh top-level scope, not the
+  // caller's environment.
+  Environment callEnv;
+  for (size_t i = 0; i < fn.params.size(); i++)
+    callEnv.define(fn.params[i].name, std::move(args[i]));
+
+  try {
+    executeBlock(*fn.body, callEnv);
+  } catch (ReturnSignal& ret) {
+    return std::move(ret.value);
+  }
+
+  // Body fell off the end without `return` -- M4's sema will reject this
+  // for non-void-returning functions; for now, produce a type-appropriate
+  // default rather than crash.
+  switch (fn.returnType) {
+  case TypeName::Int:
+    return Value{int64_t{0}};
+  case TypeName::Float:
+    return Value{0.0};
+  case TypeName::Bool:
+    return Value{false};
+  }
+  return Value{int64_t{0}};
+}
+
+Value Interpreter::callBuiltin(const std::string& name, std::vector<Value>& args,
+                               SourceLocation loc) {
+  if (name == "print") {
+    if (args.size() != 1)
+      error(loc, "'print' expects 1 argument, got " + std::to_string(args.size()));
+    out_ << valueToString(args[0]) << "\n";
+    return Value{int64_t{0}};
+  }
+  error(loc, "undefined function '" + name + "'");
 }
 
 Value Interpreter::evaluateBinary(BinaryOp op, const Value& lhs, const Value& rhs,

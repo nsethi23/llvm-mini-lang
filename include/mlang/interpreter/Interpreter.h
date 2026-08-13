@@ -14,6 +14,9 @@
 
 #include "llvm/Support/raw_ostream.h"
 
+#include <unordered_map>
+#include <vector>
+
 namespace mlang {
 
 class Interpreter {
@@ -47,11 +50,15 @@ private:
   Value evaluateBinary(BinaryOp op, const Value& lhs, const Value& rhs, SourceLocation loc);
   Value evaluateUnary(UnaryOp op, const Value& operand, SourceLocation loc);
   Value evaluateCast(const Value& operand, TypeName target, SourceLocation loc);
+  Value evaluateCall(const CallExpr& call, Environment& env);
+  Value callFunction(const FunctionDecl& fn, std::vector<Value> args, SourceLocation callLoc);
+  Value callBuiltin(const std::string& name, std::vector<Value>& args, SourceLocation loc);
 
   [[noreturn]] void error(SourceLocation loc, const std::string& message);
 
   const Program& program_;
   llvm::raw_ostream& out_;
+  std::unordered_map<std::string, const FunctionDecl*> functions_;
 };
 
 } // namespace mlang
