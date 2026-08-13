@@ -78,3 +78,25 @@ TEST(ParserProgram, ReportsDiagnosticOnMissingReturnType) {
   Program program = parser.parseProgram();
   ASSERT_EQ(parser.diagnostics().size(), 1u);
 }
+
+TEST(ParserProgram, RecoversAfterBrokenFunctionAndParsesTheNextOne) {
+  // First function is missing '->'; the second is well-formed and should
+  // still parse and appear in the program.
+  Lexer lexer("fn broken() int { return 0; } fn ok() -> int { return 1; }");
+  Parser parser(lexer.tokenize());
+  Program program = parser.parseProgram();
+
+  ASSERT_EQ(parser.diagnostics().size(), 1u);
+  ASSERT_EQ(program.functions.size(), 1u);
+  EXPECT_EQ(program.functions[0].name, "ok");
+}
+
+TEST(ParserProgram, ReportsOneDiagnosticPerBrokenFunction) {
+  Lexer lexer("fn a() int { return 0; } fn b() int { return 1; } fn c() -> int { return 2; }");
+  Parser parser(lexer.tokenize());
+  Program program = parser.parseProgram();
+
+  ASSERT_EQ(parser.diagnostics().size(), 2u);
+  ASSERT_EQ(program.functions.size(), 1u);
+  EXPECT_EQ(program.functions[0].name, "c");
+}
