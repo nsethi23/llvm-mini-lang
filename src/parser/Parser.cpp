@@ -65,6 +65,52 @@ ExprPtr Parser::parseExpression() {
   }
 }
 
+std::unique_ptr<BlockStmt> Parser::parseBlock() {
+  try {
+    SourceLocation loc = expect(TokenKind::LBrace, "expected '{' to start a block").loc;
+    std::vector<StmtPtr> stmts;
+    while (!check(TokenKind::RBrace) && !isAtEnd())
+      stmts.push_back(parseStatement());
+    expect(TokenKind::RBrace, "expected '}' to close block");
+    return std::make_unique<BlockStmt>(std::move(stmts), loc);
+  } catch (const ParseError&) {
+    return nullptr;
+  }
+}
+
+StmtPtr Parser::parseStatement() {
+  if (check(TokenKind::KwLet))
+    return parseLetStmt(advance().loc);
+  if (check(TokenKind::KwReturn))
+    return parseReturnStmt(advance().loc);
+  return parseExprStmt();
+}
+
+StmtPtr Parser::parseLetStmt(SourceLocation loc) {
+  std::string name = expect(TokenKind::Identifier, "expected variable name after 'let'").lexeme;
+  expect(TokenKind::Colon, "expected ':' after variable name");
+  TypeName type = parseTypeName();
+  expect(TokenKind::Assign, "expected '=' after type in let statement");
+  ExprPtr init = parseOr();
+  expect(TokenKind::Semicolon, "expected ';' after let statement");
+  return std::make_unique<LetStmt>(std::move(name), type, std::move(init), loc);
+}
+
+StmtPtr Parser::parseReturnStmt(SourceLocation loc) {
+  ExprPtr value;
+  if (!check(TokenKind::Semicolon))
+    value = parseOr();
+  expect(TokenKind::Semicolon, "expected ';' after return statement");
+  return std::make_unique<ReturnStmt>(std::move(value), loc);
+}
+
+StmtPtr Parser::parseExprStmt() {
+  SourceLocation loc = peek().loc;
+  ExprPtr expr = parseOr();
+  expect(TokenKind::Semicolon, "expected ';' after expression statement");
+  return std::make_unique<ExprStmt>(std::move(expr), loc);
+}
+
 ExprPtr Parser::parseOr() {
   ExprPtr expr = parseAnd();
   while (match(TokenKind::PipePipe)) {
