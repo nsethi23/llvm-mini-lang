@@ -1,0 +1,16 @@
+// Naive recursive Fibonacci -- the canonical example used throughout
+// PRD.md and the M8 benchmark suite.
+fn fib(n: int) -> int {
+    if n < 2 {
+        return n;
+    } else {
+        return fib(n - 1) + fib(n - 2);
+    }
+}
+
+fn main() -> int {
+    let x: int = 10;
+    let result: int = fib(x);
+    print(result);
+    return 0;
+}
