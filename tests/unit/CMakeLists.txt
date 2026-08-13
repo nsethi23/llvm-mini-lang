@@ -1,8 +1,9 @@
 add_executable(mlang_unit_tests
   lexer/token_kind_test.cpp
   lexer/lexer_test.cpp
+  ast/ast_nodes_test.cpp
 )
-target_link_libraries(mlang_unit_tests PRIVATE mlang_lexer GTest::gtest_main)
+target_link_libraries(mlang_unit_tests PRIVATE mlang_ast mlang_lexer GTest::gtest_main)
 
 include(GoogleTest)
 gtest_discover_tests(mlang_unit_tests)
