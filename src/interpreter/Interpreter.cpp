@@ -66,6 +66,46 @@ Value Interpreter::evaluate(const Expr& expr, Environment& env) {
   error(expr.loc, "internal error: unknown expression kind");
 }
 
+void Interpreter::executeBlock(const BlockStmt& block, Environment& parentEnv) {
+  Environment scope(&parentEnv);
+  for (const StmtPtr& s : block.stmts)
+    execute(*s, scope);
+}
+
+void Interpreter::execute(const Stmt& stmt, Environment& env) {
+  switch (stmt.kind) {
+  case StmtKind::Let: {
+    const auto& let = static_cast<const LetStmt&>(stmt);
+    env.define(let.name, evaluate(*let.init, env));
+    return;
+  }
+  case StmtKind::Assign: {
+    const auto& assign = static_cast<const AssignStmt&>(stmt);
+    Value value = evaluate(*assign.value, env);
+    if (!env.assign(assign.name, value))
+      error(stmt.loc, "undefined variable '" + assign.name + "' in assignment");
+    return;
+  }
+  case StmtKind::Return: {
+    const auto& ret = static_cast<const ReturnStmt&>(stmt);
+    Value value = ret.value ? evaluate(*ret.value, env) : Value{int64_t{0}};
+    throw ReturnSignal{std::move(value)};
+  }
+  case StmtKind::Expr: {
+    evaluate(*static_cast<const ExprStmt&>(stmt).expr, env);
+    return;
+  }
+  case StmtKind::If:
+    error(stmt.loc, "if statements not yet supported");
+  case StmtKind::While:
+    error(stmt.loc, "while statements not yet supported");
+  case StmtKind::Block:
+    executeBlock(static_cast<const BlockStmt&>(stmt), env);
+    return;
+  }
+  error(stmt.loc, "internal error: unknown statement kind");
+}
+
 Value Interpreter::evaluateBinary(BinaryOp op, const Value& lhs, const Value& rhs,
                                   SourceLocation loc) {
   if (op == BinaryOp::Eq)
