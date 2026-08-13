@@ -26,6 +26,10 @@ bool Parser::check(TokenKind kind) const {
   return !isAtEnd() && peek().kind == kind;
 }
 
+bool Parser::checkNext(TokenKind kind) const {
+  return pos_ + 1 < tokens_.size() && tokens_[pos_ + 1].kind == kind;
+}
+
 bool Parser::match(TokenKind kind) {
   if (!check(kind))
     return false;
@@ -91,6 +95,8 @@ StmtPtr Parser::parseStatement() {
     return parseIfStmt(advance().loc);
   if (check(TokenKind::KwWhile))
     return parseWhileStmt(advance().loc);
+  if (check(TokenKind::Identifier) && checkNext(TokenKind::Assign))
+    return parseAssignStmt();
   return parseExprStmt();
 }
 
@@ -102,6 +108,15 @@ StmtPtr Parser::parseLetStmt(SourceLocation loc) {
   ExprPtr init = parseOr();
   expect(TokenKind::Semicolon, "expected ';' after let statement");
   return std::make_unique<LetStmt>(std::move(name), type, std::move(init), loc);
+}
+
+StmtPtr Parser::parseAssignStmt() {
+  const Token& nameTok = expect(TokenKind::Identifier, "expected variable name");
+  SourceLocation loc = nameTok.loc;
+  expect(TokenKind::Assign, "expected '=' in assignment");
+  ExprPtr value = parseOr();
+  expect(TokenKind::Semicolon, "expected ';' after assignment");
+  return std::make_unique<AssignStmt>(nameTok.lexeme, std::move(value), loc);
 }
 
 StmtPtr Parser::parseReturnStmt(SourceLocation loc) {
