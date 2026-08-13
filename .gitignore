@@ -1,0 +1,22 @@
+## Build output
+build/
+build-*/
+out/
+
+## CMake
+CMakeCache.txt
+CMakeFiles/
+CTestTestfile.cmake
+cmake_install.cmake
+compile_commands.json
+Testing/
+
+## Editor / OS cruft
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+## code-review-graph local state
+.code-review-graph/
+*.crg.db
