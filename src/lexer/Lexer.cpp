@@ -66,6 +66,9 @@ void Lexer::skipWhitespaceAndComments() {
     char c = peek();
     if (c == ' ' || c == '\t' || c == '\r' || c == '\n') {
       advance();
+    } else if (c == '/' && peekNext() == '/') {
+      while (!isAtEnd() && peek() != '\n')
+        advance();
     } else {
       break;
     }
@@ -102,7 +105,44 @@ Token Lexer::scanNumber() {
 
 Token Lexer::scanString() {
   SourceLocation loc = currentLoc();
-  return errorToken("string literals not yet supported", loc);
+  advance(); // consume opening '"'
+
+  std::string value;
+  while (!isAtEnd() && peek() != '"') {
+    char c = advance();
+    if (c == '\n') {
+      return errorToken("unterminated string literal", loc);
+    }
+    if (c == '\\') {
+      if (isAtEnd())
+        break;
+      char esc = advance();
+      switch (esc) {
+      case 'n':
+        value += '\n';
+        break;
+      case 't':
+        value += '\t';
+        break;
+      case '"':
+        value += '"';
+        break;
+      case '\\':
+        value += '\\';
+        break;
+      default:
+        return errorToken(std::string("unknown escape sequence '\\") + esc + "'", loc);
+      }
+      continue;
+    }
+    value += c;
+  }
+
+  if (isAtEnd())
+    return errorToken("unterminated string literal", loc);
+
+  advance(); // consume closing '"'
+  return makeToken(TokenKind::StringLiteral, value, loc);
 }
 
 Token Lexer::nextToken() {
@@ -117,6 +157,8 @@ Token Lexer::nextToken() {
     return scanIdentifierOrKeyword();
   if (std::isdigit(static_cast<unsigned char>(c)))
     return scanNumber();
+  if (c == '"')
+    return scanString();
 
   advance();
   switch (c) {
