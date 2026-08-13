@@ -5,6 +5,7 @@ add_executable(mlang_unit_tests
   ast/ast_printer_test.cpp
   parser/parser_expr_test.cpp
   parser/parser_stmt_test.cpp
+  parser/parser_program_test.cpp
 )
 target_link_libraries(mlang_unit_tests PRIVATE mlang_parser mlang_ast mlang_lexer GTest::gtest_main)
 
