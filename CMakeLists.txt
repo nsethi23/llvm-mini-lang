@@ -44,8 +44,10 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
+add_subdirectory(src)
+
 add_executable(mlang src/main.cpp)
 target_include_directories(mlang PRIVATE include)
-target_link_libraries(mlang PRIVATE ${LLVM_LIBS})
+target_link_libraries(mlang PRIVATE mlang_lexer ${LLVM_LIBS})
 
 add_subdirectory(tests)
