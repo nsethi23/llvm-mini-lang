@@ -72,3 +72,44 @@ TEST(Lexer, UnknownCharacterProducesErrorToken) {
   ASSERT_EQ(tokens.size(), 2u);
   EXPECT_EQ(tokens[0].kind, TokenKind::Error);
 }
+
+TEST(Lexer, ScansSingleCharPunctuation) {
+  auto tokens = lex("(){},:;+*/%");
+  std::vector<TokenKind> expected = {
+      TokenKind::LParen, TokenKind::RParen, TokenKind::LBrace,    TokenKind::RBrace,
+      TokenKind::Comma,  TokenKind::Colon,  TokenKind::Semicolon, TokenKind::Plus,
+      TokenKind::Star,   TokenKind::Slash,  TokenKind::Percent,
+  };
+  ASSERT_EQ(tokens.size(), expected.size() + 1);
+  for (size_t i = 0; i < expected.size(); i++)
+    EXPECT_EQ(tokens[i].kind, expected[i]) << "token " << i;
+}
+
+TEST(Lexer, ScansOneAndTwoCharOperators) {
+  auto tokens = lex("- -> = == ! != < <= > >= && ||");
+  std::vector<TokenKind> expected = {
+      TokenKind::Minus,   TokenKind::Arrow,        TokenKind::Assign, TokenKind::EqualEqual,
+      TokenKind::Bang,    TokenKind::BangEqual,    TokenKind::Less,   TokenKind::LessEqual,
+      TokenKind::Greater, TokenKind::GreaterEqual, TokenKind::AmpAmp, TokenKind::PipePipe,
+  };
+  ASSERT_EQ(tokens.size(), expected.size() + 1);
+  for (size_t i = 0; i < expected.size(); i++)
+    EXPECT_EQ(tokens[i].kind, expected[i]) << "token " << i;
+}
+
+TEST(Lexer, LoneAmpersandOrPipeIsAnError) {
+  EXPECT_EQ(lex("&")[0].kind, TokenKind::Error);
+  EXPECT_EQ(lex("|")[0].kind, TokenKind::Error);
+}
+
+TEST(Lexer, FunctionSignaturePunctuationRoundTrips) {
+  auto tokens = lex("fn fib(n: int) -> int {");
+  std::vector<TokenKind> expected = {
+      TokenKind::KwFn,  TokenKind::Identifier, TokenKind::LParen, TokenKind::Identifier,
+      TokenKind::Colon, TokenKind::KwInt,      TokenKind::RParen, TokenKind::Arrow,
+      TokenKind::KwInt, TokenKind::LBrace,
+  };
+  ASSERT_EQ(tokens.size(), expected.size() + 1);
+  for (size_t i = 0; i < expected.size(); i++)
+    EXPECT_EQ(tokens[i].kind, expected[i]) << "token " << i;
+}
