@@ -35,9 +35,17 @@ private:
   // point.
   struct ParseError {};
 
+  // Unlike the public parseBlock(), this propagates ParseError to the
+  // caller instead of swallowing it -- used when a block is nested inside
+  // a larger construct (if/while/function) so one error invalidates the
+  // whole enclosing parse, not just the inner block.
+  std::unique_ptr<BlockStmt> parseBlockRaw();
+
   StmtPtr parseStatement();
   StmtPtr parseLetStmt(SourceLocation loc);
   StmtPtr parseReturnStmt(SourceLocation loc);
+  StmtPtr parseIfStmt(SourceLocation loc);
+  StmtPtr parseWhileStmt(SourceLocation loc);
   StmtPtr parseExprStmt();
 
   ExprPtr parseOr();
