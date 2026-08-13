@@ -102,6 +102,33 @@ TEST(Lexer, LoneAmpersandOrPipeIsAnError) {
   EXPECT_EQ(lex("|")[0].kind, TokenKind::Error);
 }
 
+TEST(Lexer, ScansIntLiterals) {
+  auto tokens = lex("0 42 1000000");
+  ASSERT_EQ(tokens.size(), 4u);
+  EXPECT_EQ(tokens[0].kind, TokenKind::IntLiteral);
+  EXPECT_EQ(tokens[0].lexeme, "0");
+  EXPECT_EQ(tokens[1].lexeme, "42");
+  EXPECT_EQ(tokens[2].lexeme, "1000000");
+}
+
+TEST(Lexer, ScansFloatLiterals) {
+  auto tokens = lex("0.0 3.14 100.001");
+  ASSERT_EQ(tokens.size(), 4u);
+  for (int i = 0; i < 3; i++)
+    EXPECT_EQ(tokens[i].kind, TokenKind::FloatLiteral);
+  EXPECT_EQ(tokens[1].lexeme, "3.14");
+}
+
+TEST(Lexer, TrailingDotWithoutDigitsIsNotPartOfNumber) {
+  // "1." with nothing after the dot: the int literal "1" is followed by a
+  // separate Dot-less error (we don't lex a trailing '.' at all here since
+  // there's no member-access operator in this language yet).
+  auto tokens = lex("1.foo");
+  ASSERT_GE(tokens.size(), 2u);
+  EXPECT_EQ(tokens[0].kind, TokenKind::IntLiteral);
+  EXPECT_EQ(tokens[0].lexeme, "1");
+}
+
 TEST(Lexer, FunctionSignaturePunctuationRoundTrips) {
   auto tokens = lex("fn fib(n: int) -> int {");
   std::vector<TokenKind> expected = {
