@@ -1,5 +1,7 @@
 #include "mlang/sema/Sema.h"
 
+#include <unordered_set>
+
 namespace mlang {
 
 Sema::Sema(const Program& program) : program_(program) {
@@ -243,6 +245,72 @@ void Sema::checkStmt(const Stmt& stmt, Scope& scope, const FunctionDecl& fn) {
     return;
   }
   error(stmt.loc, "internal error: unknown statement kind");
+}
+
+bool Sema::stmtAlwaysReturns(const Stmt& stmt) {
+  switch (stmt.kind) {
+  case StmtKind::Return:
+    return true;
+  case StmtKind::Block:
+    return blockAlwaysReturns(static_cast<const BlockStmt&>(stmt));
+  case StmtKind::If: {
+    const auto& ifs = static_cast<const IfStmt&>(stmt);
+    return ifs.elseBlock && stmtAlwaysReturns(*ifs.thenBlock) && stmtAlwaysReturns(*ifs.elseBlock);
+  }
+  default:
+    return false; // let/assign/expr/while never guarantee a return
+  }
+}
+
+bool Sema::blockAlwaysReturns(const BlockStmt& block) {
+  for (const StmtPtr& s : block.stmts)
+    if (stmtAlwaysReturns(*s))
+      return true;
+  return false;
+}
+
+void Sema::checkFunction(const FunctionDecl& fn) {
+  Scope paramScope;
+  std::unordered_set<std::string> seenParams;
+  for (const Param& p : fn.params) {
+    if (!seenParams.insert(p.name).second)
+      error(p.loc, "duplicate parameter '" + p.name + "' in function '" + fn.name + "'");
+    paramScope.define(p.name, toSemaType(p.type));
+  }
+
+  checkBlock(*fn.body, paramScope, fn);
+
+  if (!blockAlwaysReturns(*fn.body))
+    error(fn.loc, "'" + fn.name + "' does not return " +
+                       std::string(semaTypeName(toSemaType(fn.returnType))) + " on all paths");
+}
+
+bool Sema::check() {
+  std::unordered_set<std::string> seen;
+  for (const FunctionDecl& fn : program_.functions) {
+    if (fn.name == "print") {
+      error(fn.loc, "'print' is a built-in function and cannot be redefined");
+      continue;
+    }
+    if (!seen.insert(fn.name).second)
+      error(fn.loc, "function '" + fn.name + "' is already defined");
+  }
+
+  auto mainIt = functions_.find("main");
+  if (mainIt == functions_.end()) {
+    error(SourceLocation{1, 1}, "no 'main' function defined");
+  } else {
+    const FunctionDecl& mainFn = *mainIt->second;
+    if (!mainFn.params.empty())
+      error(mainFn.loc, "'main' must take no parameters");
+    if (mainFn.returnType != TypeName::Int)
+      error(mainFn.loc, "'main' must return int");
+  }
+
+  for (const FunctionDecl& fn : program_.functions)
+    checkFunction(fn);
+
+  return diags_.empty();
 }
 
 } // namespace mlang
