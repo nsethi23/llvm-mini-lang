@@ -1,0 +1,7 @@
+fn helper() -> int {
+    return mystery(1);
+}
+
+fn main() -> int {
+    return 0;
+}

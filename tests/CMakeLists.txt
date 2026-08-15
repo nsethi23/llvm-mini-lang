@@ -10,3 +10,10 @@ add_executable(golden_runner golden/golden_runner.cpp)
 target_link_libraries(golden_runner PRIVATE mlang_interpreter mlang_parser mlang_ast mlang_lexer
                                              ${LLVM_LIBS})
 add_test(NAME golden_tests COMMAND golden_runner ${CMAKE_SOURCE_DIR}/tests/golden)
+
+# Sema error golden-file tests: tests/golden/errors/*.mlang, each expected
+# to produce a specific diagnostic (PRD.md M4 demo).
+add_executable(sema_error_runner golden/errors/sema_error_runner.cpp)
+target_link_libraries(sema_error_runner PRIVATE mlang_sema mlang_parser mlang_ast mlang_lexer
+                                                 ${LLVM_LIBS})
+add_test(NAME sema_error_tests COMMAND sema_error_runner ${CMAKE_SOURCE_DIR}/tests/golden/errors)

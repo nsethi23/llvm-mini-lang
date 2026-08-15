@@ -1,0 +1,1 @@
+main_wrong_signature.mlang:1:1: error: 'main' must take no parameters

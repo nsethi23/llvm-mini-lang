@@ -1,0 +1,1 @@
+wrong_return_type.mlang:2:5: error: return type mismatch: 'helper' returns int, got bool

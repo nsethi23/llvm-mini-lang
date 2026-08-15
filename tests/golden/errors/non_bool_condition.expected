@@ -1,0 +1,1 @@
+non_bool_condition.mlang:2:5: error: if condition must be bool, got int

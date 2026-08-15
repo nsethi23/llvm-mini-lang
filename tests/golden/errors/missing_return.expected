@@ -1,0 +1,1 @@
+missing_return.mlang:1:1: error: 'helper' does not return int on all paths
