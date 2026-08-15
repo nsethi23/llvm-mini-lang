@@ -14,6 +14,7 @@ add_executable(mlang_unit_tests
   interpreter/interpreter_run_test.cpp
   sema/sema_type_test.cpp
   sema/scope_test.cpp
+  sema/sema_expr_test.cpp
 )
 target_link_libraries(mlang_unit_tests PRIVATE mlang_parser mlang_ast mlang_lexer mlang_interpreter
                                                 mlang_sema GTest::gtest_main)
