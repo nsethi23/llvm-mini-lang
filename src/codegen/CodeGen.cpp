@@ -102,13 +102,13 @@ llvm::Value* CodeGen::genExpr(const Expr& expr) {
   switch (expr.kind) {
   case ExprKind::IntLiteral:
     return llvm::ConstantInt::get(llvmType(TypeName::Int),
-                                   static_cast<const IntLiteralExpr&>(expr).value, true);
+                                  static_cast<const IntLiteralExpr&>(expr).value, true);
   case ExprKind::FloatLiteral:
     return llvm::ConstantFP::get(llvmType(TypeName::Float),
-                                  static_cast<const FloatLiteralExpr&>(expr).value);
+                                 static_cast<const FloatLiteralExpr&>(expr).value);
   case ExprKind::BoolLiteral:
     return llvm::ConstantInt::get(llvmType(TypeName::Bool),
-                                   static_cast<const BoolLiteralExpr&>(expr).value ? 1 : 0);
+                                  static_cast<const BoolLiteralExpr&>(expr).value ? 1 : 0);
   case ExprKind::StringLiteral:
     return builder_->CreateGlobalString(static_cast<const StringLiteralExpr&>(expr).value, "str");
   case ExprKind::Identifier: {
@@ -224,7 +224,8 @@ llvm::Value* CodeGen::genCast(const CastExpr& expr) {
 }
 
 llvm::FunctionCallee CodeGen::runtimePrintFn(const std::string& name, llvm::Type* argType) {
-  llvm::FunctionType* fnType = llvm::FunctionType::get(llvm::Type::getVoidTy(ctx_), {argType}, false);
+  llvm::FunctionType* fnType =
+      llvm::FunctionType::get(llvm::Type::getVoidTy(ctx_), {argType}, false);
   return module_->getOrInsertFunction(name, fnType);
 }
 

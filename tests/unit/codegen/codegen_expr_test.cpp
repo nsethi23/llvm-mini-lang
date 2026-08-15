@@ -34,10 +34,11 @@ struct ScratchFn {
 // constants (e.g. `1 + 2` becomes the ConstantInt `3`, never an `add`
 // instruction), so tests that need a real instruction in the output route
 // one operand through a declared local instead of a second literal.
-IdentifierExpr declareVar(ScratchFn& s, const std::string& name, TypeName type, llvm::Constant* init) {
-  llvm::Type* t = type == TypeName::Int    ? llvm::Type::getInt64Ty(s.ctx)
+IdentifierExpr declareVar(ScratchFn& s, const std::string& name, TypeName type,
+                          llvm::Constant* init) {
+  llvm::Type* t = type == TypeName::Int     ? llvm::Type::getInt64Ty(s.ctx)
                   : type == TypeName::Float ? llvm::Type::getDoubleTy(s.ctx)
-                                             : llvm::Type::getInt1Ty(s.ctx);
+                                            : llvm::Type::getInt1Ty(s.ctx);
   llvm::AllocaInst* alloca = s.cg.builder().CreateAlloca(t, nullptr, name);
   s.cg.builder().CreateStore(init, alloca);
   s.cg.declareLocal(name, alloca, type);
@@ -85,8 +86,8 @@ TEST(CodeGenExpr, GeneratesIdentifierAsLoad) {
 TEST(CodeGenExpr, GeneratesIntNegation) {
   ScratchFn s;
   s.cg.beginScope();
-  IdentifierExpr x = declareVar(s, "x", TypeName::Int,
-                                llvm::ConstantInt::get(llvm::Type::getInt64Ty(s.ctx), 5));
+  IdentifierExpr x =
+      declareVar(s, "x", TypeName::Int, llvm::ConstantInt::get(llvm::Type::getInt64Ty(s.ctx), 5));
   UnaryExpr neg(UnaryOp::Neg, std::make_unique<IdentifierExpr>(x), loc());
   llvm::Value* v = s.cg.genExpr(neg);
   ASSERT_TRUE(llvm::isa<llvm::BinaryOperator>(v));
@@ -108,8 +109,8 @@ TEST(CodeGenExpr, GeneratesFloatNegationAsFNeg) {
 TEST(CodeGenExpr, GeneratesBoolNot) {
   ScratchFn s;
   s.cg.beginScope();
-  IdentifierExpr b = declareVar(s, "b", TypeName::Bool,
-                                llvm::ConstantInt::get(llvm::Type::getInt1Ty(s.ctx), 1));
+  IdentifierExpr b =
+      declareVar(s, "b", TypeName::Bool, llvm::ConstantInt::get(llvm::Type::getInt1Ty(s.ctx), 1));
   UnaryExpr notExpr(UnaryOp::Not, std::make_unique<IdentifierExpr>(b), loc());
   llvm::Value* v = s.cg.genExpr(notExpr);
   ASSERT_TRUE(llvm::isa<llvm::BinaryOperator>(v));
@@ -120,8 +121,8 @@ TEST(CodeGenExpr, GeneratesBoolNot) {
 TEST(CodeGenExpr, GeneratesIntAddAsAdd) {
   ScratchFn s;
   s.cg.beginScope();
-  IdentifierExpr x = declareVar(s, "x", TypeName::Int,
-                                llvm::ConstantInt::get(llvm::Type::getInt64Ty(s.ctx), 1));
+  IdentifierExpr x =
+      declareVar(s, "x", TypeName::Int, llvm::ConstantInt::get(llvm::Type::getInt64Ty(s.ctx), 1));
   BinaryExpr add(BinaryOp::Add, std::make_unique<IdentifierExpr>(x),
                  std::make_unique<IntLiteralExpr>(2, loc()), loc());
   llvm::Value* v = s.cg.genExpr(add);
@@ -146,10 +147,10 @@ TEST(CodeGenExpr, GeneratesFloatAddAsFAdd) {
 TEST(CodeGenExpr, GeneratesIntComparisonAsICmp) {
   ScratchFn s;
   s.cg.beginScope();
-  IdentifierExpr x = declareVar(s, "x", TypeName::Int,
-                                llvm::ConstantInt::get(llvm::Type::getInt64Ty(s.ctx), 1));
+  IdentifierExpr x =
+      declareVar(s, "x", TypeName::Int, llvm::ConstantInt::get(llvm::Type::getInt64Ty(s.ctx), 1));
   BinaryExpr lt(BinaryOp::Lt, std::make_unique<IdentifierExpr>(x),
-               std::make_unique<IntLiteralExpr>(2, loc()), loc());
+                std::make_unique<IntLiteralExpr>(2, loc()), loc());
   llvm::Value* v = s.cg.genExpr(lt);
   auto* icmp = llvm::dyn_cast<llvm::ICmpInst>(v);
   ASSERT_NE(icmp, nullptr);
@@ -163,7 +164,7 @@ TEST(CodeGenExpr, GeneratesFloatComparisonAsFCmp) {
   IdentifierExpr x = declareVar(s, "x", TypeName::Float,
                                 llvm::ConstantFP::get(llvm::Type::getDoubleTy(s.ctx), 1.0));
   BinaryExpr lt(BinaryOp::Lt, std::make_unique<IdentifierExpr>(x),
-               std::make_unique<FloatLiteralExpr>(2.0, loc()), loc());
+                std::make_unique<FloatLiteralExpr>(2.0, loc()), loc());
   llvm::Value* v = s.cg.genExpr(lt);
   EXPECT_TRUE(llvm::isa<llvm::FCmpInst>(v));
   s.cg.endScope();
@@ -190,8 +191,8 @@ TEST(CodeGenExpr, ShortCircuitOrCreatesRhsAndMergeBlocks) {
 TEST(CodeGenExpr, GeneratesIntToFloatCast) {
   ScratchFn s;
   s.cg.beginScope();
-  IdentifierExpr x = declareVar(s, "x", TypeName::Int,
-                                llvm::ConstantInt::get(llvm::Type::getInt64Ty(s.ctx), 3));
+  IdentifierExpr x =
+      declareVar(s, "x", TypeName::Int, llvm::ConstantInt::get(llvm::Type::getInt64Ty(s.ctx), 3));
   CastExpr cast(std::make_unique<IdentifierExpr>(x), TypeName::Float, loc());
   llvm::Value* v = s.cg.genExpr(cast);
   EXPECT_TRUE(llvm::isa<llvm::SIToFPInst>(v));

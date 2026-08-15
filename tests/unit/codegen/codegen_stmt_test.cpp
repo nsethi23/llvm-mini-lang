@@ -70,8 +70,8 @@ TEST(CodeGenStmt, NestedBlockShadowsThenOuterIsVisibleAgain) {
   s.cg.genStmt(LetStmt("x", TypeName::Int, std::make_unique<IntLiteralExpr>(1, loc()), loc()));
 
   std::vector<StmtPtr> inner;
-  inner.push_back(
-      std::make_unique<LetStmt>("x", TypeName::Int, std::make_unique<IntLiteralExpr>(2, loc()), loc()));
+  inner.push_back(std::make_unique<LetStmt>("x", TypeName::Int,
+                                            std::make_unique<IntLiteralExpr>(2, loc()), loc()));
   s.cg.genStmt(*blockOf(std::move(inner)));
 
   // After the inner block's scope is popped, "x" resolves to the outer
@@ -92,7 +92,7 @@ TEST(CodeGenStmt, IfCreatesThenElseAndMergeBlocks) {
       std::make_unique<ExprStmt>(std::make_unique<IntLiteralExpr>(2, loc()), loc()));
 
   IfStmt ifs(std::make_unique<BoolLiteralExpr>(true, loc()), blockOf(std::move(thenStmts)),
-            blockOf(std::move(elseStmts)), loc());
+             blockOf(std::move(elseStmts)), loc());
   s.cg.genStmt(ifs);
 
   EXPECT_EQ(s.fn->size(), 4u); // entry, then, else, ifcont
@@ -105,7 +105,7 @@ TEST(CodeGenStmt, IfWithoutElseStillCreatesElseBlockThatFallsThrough) {
       std::make_unique<ExprStmt>(std::make_unique<IntLiteralExpr>(1, loc()), loc()));
 
   IfStmt ifs(std::make_unique<BoolLiteralExpr>(true, loc()), blockOf(std::move(thenStmts)), nullptr,
-            loc());
+             loc());
   s.cg.genStmt(ifs);
 
   EXPECT_EQ(s.fn->size(), 4u); // entry, then, else (empty, branches to merge), ifcont
@@ -117,8 +117,8 @@ TEST(CodeGenStmt, WhileCreatesCondBodyAndAfterBlocks) {
   bodyStmts.push_back(
       std::make_unique<ExprStmt>(std::make_unique<IntLiteralExpr>(1, loc()), loc()));
 
-  WhileStmt whileStmt(std::make_unique<BoolLiteralExpr>(false, loc()), blockOf(std::move(bodyStmts)),
-                      loc());
+  WhileStmt whileStmt(std::make_unique<BoolLiteralExpr>(false, loc()),
+                      blockOf(std::move(bodyStmts)), loc());
   s.cg.genStmt(whileStmt);
 
   EXPECT_EQ(s.fn->size(), 4u); // entry, whilecond, whilebody, whileend
