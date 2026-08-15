@@ -11,7 +11,7 @@ implementations (Kaleidoscope, but taken further: static types, a real test
 suite, and honest before/after benchmarks against both a tree-walking
 interpreter and Python).
 
-**Status: M4 (semantic analysis / type checking) complete.**
+**Status: M5 (LLVM IR codegen) complete.**
 
 See [`PRD.md`](PRD.md) for the full spec and milestone breakdown, and
 [`CLAUDE.md`](CLAUDE.md) for how this repo is built/worked on (one milestone
@@ -67,6 +67,10 @@ ctest --test-dir build --output-on-failure
 # sema error golden tests (tests/golden/errors/*.mlang, each expected to
 # produce a specific diagnostic)
 ./build/tests/sema_error_runner tests/golden/errors/
+
+# codegen golden tests (every well-typed tests/golden/*.mlang program must
+# codegen to a module that passes llvm::verifyModule)
+./build/tests/codegen_verify_runner tests/golden/
 ```
 
 ### Run the driver
@@ -76,6 +80,7 @@ ctest --test-dir build --output-on-failure
 ./build/mlang --dump-ast examples/fib.mlang       # s-expression AST
 ./build/mlang --check examples/fib.mlang          # type-check only
 ./build/mlang --interpret examples/fib.mlang      # type-check + tree-walking interpreter
+./build/mlang --emit-llvm examples/fib.mlang      # type-check + LLVM IR, verified
 ```
 
 `--dump-tokens` prints the token stream (kind, lexeme, `line:column`).
@@ -88,9 +93,14 @@ every function body) and prints the same `file:line:col: error: ...` style
 diagnostics for any type error, without running the program. `--interpret`
 runs the same checks and, if the program is well-typed, tree-walks it,
 exiting with `main`'s return value — this interpreter is also the
-correctness oracle every later LLVM-codegen test is checked against
-(PRD.md M3/M7). A working REPL lands in M6 — see `PRD.md` for the full
-milestone list.
+correctness oracle every LLVM-codegen test is checked against (PRD.md
+M3/M7). `--emit-llvm` runs the same checks and, if the program is
+well-typed, walks the AST via `IRBuilder` to emit LLVM IR -- function
+definitions, arithmetic/comparison ops, `alloca`-based locals, `if`/`while`
+control flow via basic blocks, function calls, and `print()` lowered to a
+declared (not yet linked) runtime helper -- verifies the module with
+`llvm::verifyModule`, and prints the resulting `.ll` text. A working JIT
+and REPL land in M6 — see `PRD.md` for the full milestone list.
 
 ## Development
 
