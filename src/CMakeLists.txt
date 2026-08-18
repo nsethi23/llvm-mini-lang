@@ -26,13 +26,19 @@ add_library(mlang_sema STATIC
 target_include_directories(mlang_sema PUBLIC ${CMAKE_SOURCE_DIR}/include)
 target_link_libraries(mlang_sema PUBLIC mlang_ast)
 
+add_library(mlang_jit STATIC
+  jit/DispatchTable.cpp
+)
+target_include_directories(mlang_jit PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(mlang_jit PUBLIC mlang_lexer)
+
 add_library(mlang_interpreter STATIC
   interpreter/Value.cpp
   interpreter/Environment.cpp
   interpreter/Interpreter.cpp
 )
 target_include_directories(mlang_interpreter PUBLIC ${CMAKE_SOURCE_DIR}/include)
-target_link_libraries(mlang_interpreter PUBLIC mlang_ast ${LLVM_LIBS})
+target_link_libraries(mlang_interpreter PUBLIC mlang_ast mlang_jit ${LLVM_LIBS})
 
 add_library(mlang_codegen STATIC
   codegen/CodeGen.cpp
