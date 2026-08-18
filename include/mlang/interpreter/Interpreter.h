@@ -12,9 +12,11 @@
 #include "mlang/interpreter/RuntimeError.h"
 #include "mlang/interpreter/Value.h"
 #include "mlang/jit/DispatchTable.h"
+#include "mlang/jit/Promoter.h"
 
 #include "llvm/Support/raw_ostream.h"
 
+#include <memory>
 #include <unordered_map>
 #include <vector>
 
@@ -54,6 +56,16 @@ public:
     return dispatch_;
   }
 
+  // Enables PRD.md M7's hot-swap promotion: once a function's dispatch
+  // call count crosses `threshold`, it's JIT-compiled and its entry
+  // redirected to native code. Off by default -- plain --interpret and
+  // every non-promotion test keep running purely tree-walked. `traceOut`,
+  // if given, gets one line per promotion (the --trace-promotions demo).
+  void enablePromotion(uint64_t threshold, llvm::raw_ostream* traceOut = nullptr) {
+    promoter_ = std::make_unique<Promoter>(program_, dispatch_, threshold, traceOut, out_);
+    promoter_->attach();
+  }
+
 private:
   // Thrown by a `return` statement to unwind out of the current function
   // call. Never escapes a public entry point that represents a complete
@@ -75,6 +87,7 @@ private:
   llvm::raw_ostream& out_;
   std::unordered_map<std::string, const FunctionDecl*> functions_;
   DispatchTable dispatch_;
+  std::unique_ptr<Promoter> promoter_;
 };
 
 } // namespace mlang

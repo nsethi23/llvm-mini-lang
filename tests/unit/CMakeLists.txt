@@ -13,6 +13,7 @@ add_executable(mlang_unit_tests
   interpreter/interpreter_call_test.cpp
   interpreter/interpreter_run_test.cpp
   interpreter/interpreter_dispatch_test.cpp
+  interpreter/interpreter_promotion_test.cpp
   sema/sema_type_test.cpp
   sema/scope_test.cpp
   sema/sema_expr_test.cpp
@@ -23,6 +24,7 @@ add_executable(mlang_unit_tests
   codegen/codegen_program_test.cpp
   jit/dispatch_table_test.cpp
   jit/jit_test.cpp
+  jit/promoter_test.cpp
 )
 target_link_libraries(mlang_unit_tests PRIVATE mlang_parser mlang_ast mlang_lexer mlang_interpreter
                                                 mlang_sema mlang_codegen mlang_jit GTest::gtest_main)
