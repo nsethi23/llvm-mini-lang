@@ -8,6 +8,17 @@ Interpreter::Interpreter(const Program& program, llvm::raw_ostream& out)
     : program_(program), out_(out) {
   for (const FunctionDecl& fn : program_.functions)
     functions_[fn.name] = &fn;
+
+  // Every function starts bound to its interpreter trampoline (PRD.md M6).
+  // M7 will redirect promoted functions' entries to a JIT trampoline
+  // instead; nothing that calls through dispatch_.invoke() needs to change
+  // when that happens.
+  for (const FunctionDecl& fn : program_.functions) {
+    const FunctionDecl* fnPtr = &fn;
+    dispatch_.install(fn.name, [this, fnPtr](std::vector<Value> args, SourceLocation callLoc) {
+      return callFunction(*fnPtr, std::move(args), callLoc);
+    });
+  }
 }
 
 void Interpreter::error(SourceLocation loc, const std::string& message) {
@@ -133,7 +144,7 @@ int64_t Interpreter::run() {
   if (it == functions_.end())
     error(SourceLocation{1, 1}, "no 'main' function defined");
 
-  Value result = callFunction(*it->second, {}, SourceLocation{1, 1});
+  Value result = dispatch_.invoke("main", {}, SourceLocation{1, 1});
   if (!std::holds_alternative<int64_t>(result))
     error(SourceLocation{1, 1},
           "'main' must return int, got " + std::string(valueTypeName(result)));
@@ -146,9 +157,8 @@ Value Interpreter::evaluateCall(const CallExpr& call, Environment& env) {
   for (const ExprPtr& arg : call.args)
     args.push_back(evaluate(*arg, env));
 
-  auto it = functions_.find(call.callee);
-  if (it != functions_.end())
-    return callFunction(*it->second, std::move(args), call.loc);
+  if (dispatch_.contains(call.callee))
+    return dispatch_.invoke(call.callee, std::move(args), call.loc);
   return callBuiltin(call.callee, args, call.loc);
 }
 

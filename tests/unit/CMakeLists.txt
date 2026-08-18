@@ -12,6 +12,7 @@ add_executable(mlang_unit_tests
   interpreter/interpreter_control_flow_test.cpp
   interpreter/interpreter_call_test.cpp
   interpreter/interpreter_run_test.cpp
+  interpreter/interpreter_dispatch_test.cpp
   sema/sema_type_test.cpp
   sema/scope_test.cpp
   sema/sema_expr_test.cpp
