@@ -243,6 +243,7 @@ about *when and how a typed AST gets executed*, not about redoing the
 front end. See §6 for the updated architecture.
 
 ### M6 — Profiling + dispatch layer
+**Status: ✅ Complete.**
 Add call counters to the interpreter (one per function, incremented on
 every invocation) and an indirect call-dispatch table — one entry per
 function, keyed by name. Every entry initially points at that function's
