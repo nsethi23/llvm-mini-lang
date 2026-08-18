@@ -4,8 +4,9 @@
 // printing diagnostics for any parse or sema error. `--interpret <file>`
 // does the same plus tree-walks a well-typed program via the interpreter,
 // exiting with `main`'s return value. M5 adds `--emit-llvm <file>`, which
-// does the same checks plus emits and verifies LLVM IR. The jit flag lands
-// in a later milestone -- see PRD.md for the breakdown.
+// does the same checks plus emits and verifies LLVM IR. `--trace-calls`
+// (M6) interprets the program and prints each function's dispatch-table
+// call count. See PRD.md for the full milestone breakdown.
 #include "mlang/ast/AstPrinter.h"
 #include "mlang/codegen/CodeGen.h"
 #include "mlang/interpreter/Interpreter.h"
@@ -29,7 +30,8 @@ void printUsage() {
                   "       mlang --dump-ast <file>\n"
                   "       mlang --check <file>\n"
                   "       mlang --interpret <file>\n"
-                  "       mlang --emit-llvm <file>\n";
+                  "       mlang --emit-llvm <file>\n"
+                  "       mlang --trace-calls <file>\n";
 }
 
 std::string readFileOrEmpty(const std::string& path, bool& ok) {
@@ -140,6 +142,50 @@ int interpret(const std::string& path) {
   }
 }
 
+// PRD.md M6 demo: runs a program through the interpreter and prints each
+// function's call count -- the count DispatchTable accumulates on every
+// invoke(), which M7's promotion decision will read from directly.
+int traceCalls(const std::string& path) {
+  bool ok = false;
+  std::string source = readFileOrEmpty(path, ok);
+  if (!ok)
+    return 1;
+
+  mlang::Lexer lexer(source);
+  mlang::Parser parser(lexer.tokenize());
+  mlang::Program program = parser.parseProgram();
+
+  for (const mlang::Diagnostic& diag : parser.diagnostics())
+    llvm::errs() << path << ":" << diag.loc.line << ":" << diag.loc.column
+                 << ": error: " << diag.message << "\n";
+  if (!parser.diagnostics().empty())
+    return 1;
+
+  mlang::Sema sema(program);
+  sema.check();
+  for (const mlang::Diagnostic& diag : sema.diagnostics())
+    llvm::errs() << path << ":" << diag.loc.line << ":" << diag.loc.column
+                 << ": error: " << diag.message << "\n";
+  if (!sema.diagnostics().empty())
+    return 1;
+
+  mlang::Interpreter interp(program);
+  int exitCode = 0;
+  try {
+    exitCode = static_cast<int>(interp.run());
+  } catch (const mlang::RuntimeError& err) {
+    llvm::errs() << path << ":" << err.loc.line << ":" << err.loc.column
+                 << ": error: " << err.message << "\n";
+    exitCode = 1;
+  }
+
+  llvm::outs() << "-- call counts --\n";
+  for (const auto& [name, count] : interp.dispatchTable().callCounts())
+    llvm::outs() << name << ": " << count << "\n";
+
+  return exitCode;
+}
+
 int emitLlvm(const std::string& path) {
   bool ok = false;
   std::string source = readFileOrEmpty(path, ok);
@@ -192,6 +238,8 @@ int main(int argc, char** argv) {
     return interpret(argv[2]);
   if (argc == 3 && std::string(argv[1]) == "--emit-llvm")
     return emitLlvm(argv[2]);
+  if (argc == 3 && std::string(argv[1]) == "--trace-calls")
+    return traceCalls(argv[2]);
 
   printUsage();
   return argc == 1 ? 0 : 1;
