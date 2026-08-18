@@ -6,7 +6,9 @@
 // exiting with `main`'s return value. M5 adds `--emit-llvm <file>`, which
 // does the same checks plus emits and verifies LLVM IR. `--trace-calls`
 // (M6) interprets the program and prints each function's dispatch-table
-// call count. See PRD.md for the full milestone breakdown.
+// call count. `--trace-promotions` (M7) interprets with hot-swap
+// promotion enabled, printing each function's promotion to native code as
+// it happens mid-run. See PRD.md for the full milestone breakdown.
 #include "mlang/ast/AstPrinter.h"
 #include "mlang/codegen/CodeGen.h"
 #include "mlang/interpreter/Interpreter.h"
@@ -20,6 +22,7 @@
 #include "llvm/IR/Verifier.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include <cstdlib>
 #include <fstream>
 #include <sstream>
 
@@ -31,7 +34,8 @@ void printUsage() {
                   "       mlang --check <file>\n"
                   "       mlang --interpret <file>\n"
                   "       mlang --emit-llvm <file>\n"
-                  "       mlang --trace-calls <file>\n";
+                  "       mlang --trace-calls <file>\n"
+                  "       mlang --trace-promotions <file> [threshold]\n";
 }
 
 std::string readFileOrEmpty(const std::string& path, bool& ok) {
@@ -186,6 +190,46 @@ int traceCalls(const std::string& path) {
   return exitCode;
 }
 
+// PRD.md M7 demo: interprets a program with hot-swap promotion enabled,
+// printing "<fn> promoted to native code after N calls" the moment each
+// promotion happens. `threshold` is deliberately a CLI argument, not a
+// baked-in constant -- it's a real tuning knob (PRD.md M8 reports it
+// alongside benchmark numbers for exactly that reason).
+int tracePromotions(const std::string& path, uint64_t threshold) {
+  bool ok = false;
+  std::string source = readFileOrEmpty(path, ok);
+  if (!ok)
+    return 1;
+
+  mlang::Lexer lexer(source);
+  mlang::Parser parser(lexer.tokenize());
+  mlang::Program program = parser.parseProgram();
+
+  for (const mlang::Diagnostic& diag : parser.diagnostics())
+    llvm::errs() << path << ":" << diag.loc.line << ":" << diag.loc.column
+                 << ": error: " << diag.message << "\n";
+  if (!parser.diagnostics().empty())
+    return 1;
+
+  mlang::Sema sema(program);
+  sema.check();
+  for (const mlang::Diagnostic& diag : sema.diagnostics())
+    llvm::errs() << path << ":" << diag.loc.line << ":" << diag.loc.column
+                 << ": error: " << diag.message << "\n";
+  if (!sema.diagnostics().empty())
+    return 1;
+
+  mlang::Interpreter interp(program);
+  interp.enablePromotion(threshold, &llvm::outs());
+  try {
+    return static_cast<int>(interp.run());
+  } catch (const mlang::RuntimeError& err) {
+    llvm::errs() << path << ":" << err.loc.line << ":" << err.loc.column
+                 << ": error: " << err.message << "\n";
+    return 1;
+  }
+}
+
 int emitLlvm(const std::string& path) {
   bool ok = false;
   std::string source = readFileOrEmpty(path, ok);
@@ -240,6 +284,18 @@ int main(int argc, char** argv) {
     return emitLlvm(argv[2]);
   if (argc == 3 && std::string(argv[1]) == "--trace-calls")
     return traceCalls(argv[2]);
+  if ((argc == 3 || argc == 4) && std::string(argv[1]) == "--trace-promotions") {
+    uint64_t threshold = 10;
+    if (argc == 4) {
+      char* end = nullptr;
+      threshold = std::strtoull(argv[3], &end, 10);
+      if (end == argv[3] || *end != '\0') {
+        llvm::errs() << "mlang: invalid threshold '" << argv[3] << "'\n";
+        return 1;
+      }
+    }
+    return tracePromotions(argv[2], threshold);
+  }
 
   printUsage();
   return argc == 1 ? 0 : 1;
