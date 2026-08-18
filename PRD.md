@@ -258,6 +258,7 @@ one function's dispatch entry mid-run and shows subsequent calls resolve
 through the new target.
 
 ### M7 — Hot-swap promotion
+**Status: ✅ Complete.**
 Threshold-triggered promotion: once a function's call count crosses a
 configurable threshold N, that function is run through the existing M5
 codegen path, JIT-compiled via ORC, and its dispatch table entry is patched

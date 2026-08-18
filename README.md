@@ -11,7 +11,7 @@ implementations (Kaleidoscope, but taken further: static types, a real test
 suite, and honest before/after benchmarks against both a tree-walking
 interpreter and Python).
 
-**Status: M6 (profiling + dispatch layer) complete.**
+**Status: M7 (hot-swap promotion) complete.**
 
 See [`PRD.md`](PRD.md) for the full spec and milestone breakdown, and
 [`CLAUDE.md`](CLAUDE.md) for how this repo is built/worked on (one milestone
@@ -104,8 +104,18 @@ runs the same checks and, if the program is well-typed, interprets it
 through a per-function call-dispatch table, printing each function's call
 count once it finishes -- every call resolves through this table by name,
 which is the mechanism M7's hot-swap promotion patches to redirect a hot
-function to JIT-compiled native code mid-run. See `PRD.md` for the full
-milestone list.
+function to JIT-compiled native code mid-run. `--trace-promotions
+<file> [threshold]` (default threshold 10) runs the same interpreted
+program with promotion enabled: once a function's call count crosses the
+threshold, it's compiled through a real ORC `LLJIT` (reusing the M5
+codegen path unchanged) and its dispatch entry is redirected to the
+compiled code live, mid-program -- printing `"<fn> promoted to native
+code after N calls"` the moment it happens, including while that
+function's own earlier recursive calls are still unwinding on the
+interpreter's call stack. A dedicated golden cross-check runs every
+`tests/golden/` program pure-interpreted, promoted mid-run, and promoted
+on its first call, and requires all three to agree exactly. See `PRD.md`
+for the full milestone list.
 
 ## Development
 
