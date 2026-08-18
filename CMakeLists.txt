@@ -27,7 +27,7 @@ include(${LLVM_DIR}/AddLLVM.cmake)
 add_definitions(${LLVM_DEFINITIONS})
 include_directories(${LLVM_INCLUDE_DIRS})
 
-llvm_map_components_to_libnames(LLVM_LIBS core support)
+llvm_map_components_to_libnames(LLVM_LIBS core support orcjit native)
 
 enable_testing()
 
