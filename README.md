@@ -11,7 +11,7 @@ implementations (Kaleidoscope, but taken further: static types, a real test
 suite, and honest before/after benchmarks against both a tree-walking
 interpreter and Python).
 
-**Status: M7 (hot-swap promotion) complete.**
+**Status: M8 (benchmarks) complete.**
 
 See [`PRD.md`](PRD.md) for the full spec and milestone breakdown, and
 [`CLAUDE.md`](CLAUDE.md) for how this repo is built/worked on (one milestone
