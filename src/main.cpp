@@ -8,11 +8,14 @@
 // (M6) interprets the program and prints each function's dispatch-table
 // call count. `--trace-promotions` (M7) interprets with hot-swap
 // promotion enabled, printing each function's promotion to native code as
-// it happens mid-run. See PRD.md for the full milestone breakdown.
+// it happens mid-run. Running with no arguments (M9) launches an
+// interactive REPL over the same tiered execution path. See PRD.md for
+// the full milestone breakdown.
 #include "mlang/ast/AstPrinter.h"
 #include "mlang/codegen/CodeGen.h"
 #include "mlang/interpreter/Interpreter.h"
 #include "mlang/interpreter/RuntimeError.h"
+#include "mlang/jit/Repl.h"
 #include "mlang/lexer/Lexer.h"
 #include "mlang/lexer/TokenKind.h"
 #include "mlang/parser/Parser.h"
@@ -24,6 +27,7 @@
 
 #include <cstdlib>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 
 namespace {
@@ -35,7 +39,8 @@ void printUsage() {
                   "       mlang --interpret <file>\n"
                   "       mlang --emit-llvm <file>\n"
                   "       mlang --trace-calls <file>\n"
-                  "       mlang --trace-promotions <file> [threshold]\n";
+                  "       mlang --trace-promotions <file> [threshold]\n"
+                  "       mlang                              # launch the REPL\n";
 }
 
 std::string readFileOrEmpty(const std::string& path, bool& ok) {
@@ -297,6 +302,11 @@ int main(int argc, char** argv) {
     return tracePromotions(argv[2], threshold);
   }
 
+  if (argc == 1) {
+    mlang::Repl repl(std::cin, llvm::outs());
+    return repl.run();
+  }
+
   printUsage();
-  return argc == 1 ? 0 : 1;
+  return 1;
 }

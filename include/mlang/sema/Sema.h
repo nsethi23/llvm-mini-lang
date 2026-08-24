@@ -45,14 +45,23 @@ public:
   // iff the program is well-typed.
   bool check();
 
-  const std::vector<Diagnostic>& diagnostics() const { return diags_; }
+  // Type-checks a single function's params, body, and all-paths-return
+  // flow -- everything check() does per-function, without the whole-
+  // program duplicate-name/main() checks. Public so the REPL (PRD.md M9)
+  // can validate one newly-defined function at a time against the
+  // functions already known to this Sema instance, matching how a REPL
+  // grows a program incrementally rather than checking it all at once.
+  void checkFunction(const FunctionDecl& fn);
+
+  const std::vector<Diagnostic>& diagnostics() const {
+    return diags_;
+  }
 
 private:
   SemaType checkUnary(const UnaryExpr& expr, Scope& scope);
   SemaType checkBinary(const BinaryExpr& expr, Scope& scope);
   SemaType checkCast(const CastExpr& expr, Scope& scope);
   SemaType checkCall(const CallExpr& expr, Scope& scope);
-  void checkFunction(const FunctionDecl& fn);
 
   // Conservative static flow check: true only if every path through the
   // statement/block is guaranteed to hit a `return` (a `while` body never
